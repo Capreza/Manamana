@@ -14,37 +14,171 @@ from Business.Apartment import Apartment
 # ---------------------------------- CRUD API: ----------------------------------
 
 def create_tables():
-    # TODO: implement
-    pass
+    conn = None
+    try:
+        conn = Connector.DBConnector()
+        conn.execute(
+            "CREATE TABLE Owners(id INTEGER PRIMARY KEY, name TEXT NOT NULL)")
+        conn.execute("""CREATE TABLE Apartments (
+            apartment_id SERIAL PRIMARY KEY,
+            city VARCHAR(255) NOT NULL,
+            country VARCHAR(255) NOT NULL,
+            address VARCHAR(255) NOT NULL,
+            UNIQUE (city, country, address)
+        );""")
+        conn.execute(
+            "CREATE TABLE Customers (id INTEGER PRIMARY KEY, name TEXT NOT NULL);")
+    except DatabaseException.ConnectionInvalid as e:
+        print(e)
+    except DatabaseException.NOT_NULL_VIOLATION as e:
+        print(e)
+    except DatabaseException.CHECK_VIOLATION as e:
+        print(e)
+    except DatabaseException.UNIQUE_VIOLATION as e:
+        print(e)
+    except DatabaseException.FOREIGN_KEY_VIOLATION as e:
+        print(e)
+    except Exception as e:
+        print(e)
+    finally:
+        conn.close() # type: ignore
 
 
 def clear_tables():
-    # TODO: implement
-    pass
+    conn = None
+    try:
+        conn = Connector.DBConnector()
+        conn.execute("DELETE FROM Owners")
+        conn.execute("DELETE FROM Apartments")
+        conn.execute("DELETE FROM Customers")
+    except DatabaseException.ConnectionInvalid as e:
+        print(e)
+    except DatabaseException.NOT_NULL_VIOLATION as e:
+        print(e)
+    except DatabaseException.CHECK_VIOLATION as e:
+        print(e)
+    except DatabaseException.UNIQUE_VIOLATION as e:
+        print(e)
+    except DatabaseException.FOREIGN_KEY_VIOLATION as e:
+        print(e)
+    except Exception as e:
+        print(e)
+    finally:
+        conn.close() # type: ignore
 
 
 def drop_tables():
-    # TODO: implement
-    pass
+    conn = None
+    try:
+        conn = Connector.DBConnector()
+        conn.execute("DROP TABLE Owners")
+        conn.execute("DROP TABLE Apartments")
+        conn.execute("DROP TABLE Customers")
+    except DatabaseException.ConnectionInvalid as e:
+        print(e)
+    except DatabaseException.NOT_NULL_VIOLATION as e:
+        print(e)
+    except DatabaseException.CHECK_VIOLATION as e:
+        print(e)
+    except DatabaseException.UNIQUE_VIOLATION as e:
+        print(e)
+    except DatabaseException.FOREIGN_KEY_VIOLATION as e:
+        print(e)
+    except Exception as e:
+        print(e)
+    finally:
+        conn.close() # type: ignore
 
 
 def add_owner(owner: Owner) -> ReturnValue:
-    # TODO: implement
-    pass
+    conn = None
+    try:
+        conn = Connector.DBConnector()        # add owner
+        query = sql.SQL("INSERT INTO Owners(id, name) VALUES({id}, {name})").format(id=sql.Literal(owner.get_owner_id()),
+                                                                                    name=sql.Literal(owner.get_owner_name()))
+        conn.execute(query)
+    except DatabaseException.ConnectionInvalid as e:
+        print(e)
+        return ReturnValue.ERROR
+    except DatabaseException.NOT_NULL_VIOLATION as e:
+        print(e)
+        return ReturnValue.BAD_PARAMS
+    except DatabaseException.CHECK_VIOLATION as e:
+        print(e)
+        return ReturnValue.ERROR
+    except DatabaseException.UNIQUE_VIOLATION as e:
+        print(e)
+        return ReturnValue.ALREADY_EXISTS
+    except DatabaseException.FOREIGN_KEY_VIOLATION as e:
+        print(e)
+        return ReturnValue.ERROR
+    except Exception as e:
+        print(e)
+    finally:
+        conn.close() # type: ignore
+        return ReturnValue.OK
 
 
 def get_owner(owner_id: int) -> Owner:
-    # TODO: implement
-    pass
-
+    conn = None
+    try:
+        conn = Connector.DBConnector()
+        rows_effected, result = conn.execute("SELECT * FROM Owners WHERE id = " + str(owner_id))
+        # rows_effected is the number of rows received by the SELECT
+    except DatabaseException.ConnectionInvalid as e:
+        print(e)
+        return Owner.bad_owner()
+    except DatabaseException.NOT_NULL_VIOLATION as e:
+        print(e)
+        return Owner.bad_owner()
+    except DatabaseException.CHECK_VIOLATION as e:
+        print(e)
+        return Owner.bad_owner()
+    except DatabaseException.UNIQUE_VIOLATION as e:
+        print(e)
+        return Owner.bad_owner()
+    except DatabaseException.FOREIGN_KEY_VIOLATION as e:
+        print(e)
+        return Owner.bad_owner()
+    except Exception as e:
+        print(e)
+        return Owner.bad_owner()
+    finally:
+        conn.close() # type: ignore
+        return result
 
 def delete_owner(owner_id: int) -> ReturnValue:
-    # TODO: implement
-    pass
+    conn = None
+    try:
+        conn = Connector.DBConnector()
+        query = sql.SQL("DELETE FROM Owners WHERE id={0}").format(sql.Literal(owner_id))
+        rows_affected, _ = conn.execute(query)
+        if rows_affected == 0:
+            return ReturnValue.NOT_EXISTS
+    except DatabaseException.ConnectionInvalid as e:
+        print(e)
+        return ReturnValue.ERROR
+    except DatabaseException.NOT_NULL_VIOLATION as e:
+        print(e)
+        return ReturnValue.BAD_PARAMS
+    except DatabaseException.CHECK_VIOLATION as e:
+        print(e)
+        return ReturnValue.ERROR
+    except DatabaseException.UNIQUE_VIOLATION as e:
+        print(e)
+        return ReturnValue.ERROR
+    except DatabaseException.FOREIGN_KEY_VIOLATION as e:
+        print(e)
+        return ReturnValue.ERROR
+    except Exception as e:
+        print(e)
+    finally:
+        conn.close() # type: ignore
+        return ReturnValue.OK
 
 
 def add_apartment(apartment: Apartment) -> ReturnValue:
-    # TODO: implement
+    
     pass
 
 
