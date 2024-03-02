@@ -1,6 +1,10 @@
 from Solution import *
 
 if __name__ == '__main__':
+
+    # print('delete all tables')
+    # drop_tables()
+
     print("0. Creating all tables")
     create_tables()
 
@@ -48,12 +52,9 @@ if __name__ == '__main__':
     reservation = customer_made_reservation(1234,123,datetime.today(),datetime.today().replace(day=5),total_cost=69)
     print(reservation)
 
-
     print("12. add reservation 2.3-4.3")
     reservation = customer_made_reservation(1234,123,datetime.today(),datetime.today().replace(day=4),total_cost=69)
     print(reservation)
 
-    print('delete all tables')
-    drop_tables()
-
-
+    # print('delete all tables')
+    # drop_tables()

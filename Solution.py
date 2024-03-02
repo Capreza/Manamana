@@ -18,6 +18,8 @@ def create_tables():
     try:
         conn = Connector.DBConnector()
         conn.execute(
+            "CREATE TABLE Reservations (aid INTEGER NOT NULL, cid INTEGER NOT NULL, start_date DATE, end_date DATE, total_cost FLOAT, PRIMARY KEY(aid,cid,start_date));")
+        conn.execute(
             "CREATE TABLE Owners(id INTEGER PRIMARY KEY, name TEXT NOT NULL)")
         conn.execute("""CREATE TABLE Apartments (
             apartment_id INTEGER PRIMARY KEY,
@@ -31,8 +33,6 @@ def create_tables():
             "CREATE TABLE Customers (id INTEGER PRIMARY KEY, name TEXT NOT NULL);")
         conn.execute(
             "CREATE TABLE Reviews (aid INTEGER NOT NULL, cid INTEGER NOT NULL, text TEXT, date DATE, rating INTEGER, PRIMARY KEY (aid, cid));")
-        conn.execute(
-            "CREATE TABLE Reservations (aid INTEGER NOT NULL, cid INTEGER NOT NULL, start_date DATE, end_date DATE, total_price FLOAT, PRIMARY KEY(aid,cid,start_date));")
         print("created reservations")
     except DatabaseException.ConnectionInvalid as e:
         print(e)
@@ -78,10 +78,11 @@ def drop_tables():
     conn = None
     try:
         conn = Connector.DBConnector()
+        conn.execute("DROP TABLE Reservations CASCADE")
+        conn.execute("DROP TABLE Reviews CASCADE")
         conn.execute("DROP TABLE Owners")
         conn.execute("DROP TABLE Apartments")
         conn.execute("DROP TABLE Customers")
-        conn.execute("DROP TABLE Reservations")
     except DatabaseException.ConnectionInvalid as e:
         print(e)
     except DatabaseException.NOT_NULL_VIOLATION as e:
@@ -381,40 +382,48 @@ def delete_customer(customer_id: int) -> ReturnValue:
         return ReturnValue.OK
 
 
-def customer_made_reservation(customer_id: int, apartment_id: int, start_date: date, end_date: date,total_cost: float,
+def customer_made_reservation(customer_id: int, apartment_id: int, start_date: date, end_date: date, total_cost: float,
                               conn=None):
 
     try:
         conn = Connector.DBConnector()
 
-        query = sql.SQL(f"""
-        DROP VIEW ApartmentReservations{apartment_id}
-        """)
-        _ , _ = conn.execute(query)
+        view_name = f'Apartment_Reservations_{apartment_id}'
 
-        query = sql.SQL(f"""
-        CREATE VIEW ApartmentReservations{apartment_id} as
+        query = sql.SQL("""
+        CREATE VIEW {view_name} AS
         SELECT *
         FROM Reservations
-        WHERE aid = {apartment_id}
-        """)
-        _ , _ = conn.execute(query)
-        query = sql.SQL(f"""
-        IF NOT EXISTS
-            (
-            SELECT *
-            FROM ApartmentReservations{apartment_id}
-            WHERE 
-            NOT({start_date.strftime('%Y-%m-%d')}>end_date OR {end_date.strftime('%Y-%m-%d')}<start_date)
+        WHERE aid = {aid}
+        """).format(
+            view_name=sql.Identifier(view_name),
+            aid=sql.Literal(apartment_id)
+        )
+        conn.execute(query)
+
+        query = sql.SQL("""
+        INSERT INTO Reservations(aid, cid, start_date, end_date, total_cost)
+        SELECT {apartment_id}, {customer_id}, {start_date}, {end_date}, {total_cost}
+        WHERE NOT EXISTS (
+            SELECT 1 FROM Reservations
+            WHERE aid = {apartment_id}
+            AND NOT(
+                {start_date} > end_date OR
+                {end_date} < start_date
             )
-            INSERT INTO Reservations(aid,cid,start_date,end_date,total_cost)
-                VALUES({customer_id,apartment_id,start_date.strftime('%Y-%m-%d'),end_date.strftime('%Y-%m-%d'),total_cost}
-        """)
+        )
+        """).format(
+            apartment_id=sql.Literal(apartment_id),
+            customer_id=sql.Literal(customer_id),
+            start_date=sql.Literal(start_date.strftime('%Y-%m-%d')),
+            end_date=sql.Literal(end_date.strftime('%Y-%m-%d')),
+            total_cost=sql.Literal(total_cost)
+        )
+
         rows_affected, _ = conn.execute(query)
-        query = sql.SQL(f"""
-        DROP VIEW ApartmentReservations{apartment_id}
-        """)
-        _ , _ = conn.execute(query)
+        query = sql.SQL("DROP VIEW {view_name}").format(
+            view_name=sql.Identifier(view_name))
+        _, _ = conn.execute(query)
 
     except DatabaseException.ConnectionInvalid as e:
         print(e)
@@ -517,5 +526,3 @@ def profit_per_month(year: int) -> List[Tuple[int, float]]:
 def get_apartment_recommendation(customer_id: int) -> List[Tuple[Apartment, float]]:
     # TODO: implement
     pass
-
-
