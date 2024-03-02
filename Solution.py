@@ -185,15 +185,16 @@ def add_apartment(apartment: Apartment) -> ReturnValue:
     conn = None
     try:
         conn = Connector.DBConnector()        # add owner
-        id = sql.Literal(apartment.get_id())
-        address = sql.Literal(apartment.get_address())
-        city = sql.Literal(apartment.get_city())
-        country = sql.Literal(apartment.get_country())
-        size = sql.Literal(apartment.get_size())
+        query = sql.SQL("""INSERT INTO Apartment(apartment_id, address, city, country, size)
+                        VALUES({id}, {name})""").format(id=sql.Literal(apartment.get_id()),
+                                                        address=sql.Literal(
+            apartment.get_address()),
+            city=sql.Literal(
+            apartment.get_city()),
+            country=sql.Literal(
+            apartment.get_country()),
+            size=sql.Literal(apartment.get_size()))
 
-        query = sql.SQL(
-            f"""INSERT INTO Apartments(id, address, city, country, size)
-            VALUES({id}, {address}, {city}, {country}, {size})""")
         conn.execute(query)
     except DatabaseException.ConnectionInvalid as e:
         print(e)
