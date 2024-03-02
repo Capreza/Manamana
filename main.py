@@ -14,7 +14,7 @@ if __name__ == '__main__':
 
     print("3. Get owner with ID 1")
     owner = get_owner(1)
-    print(owner)
+    print(owner['id'][0])
 
     # print("4. Try adding owner with ID 1 and name Gal")
     # illegal_owner = Owner(1, 'Gal')

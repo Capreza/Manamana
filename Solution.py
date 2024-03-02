@@ -147,7 +147,9 @@ def get_owner(owner_id: int) -> Owner:
         return Owner.bad_owner()
     finally:
         conn.close()  # type: ignore
-        return result
+        if rows_effected == 0:
+            return Owner.bad_owner()
+        return Owner(owner_id=result['id'][0],owner_name=result['name'][0])
 
 
 def delete_owner(owner_id: int) -> ReturnValue:
@@ -186,7 +188,7 @@ def add_apartment(apartment: Apartment) -> ReturnValue:
     try:
         conn = Connector.DBConnector()        # add owner
         query = sql.SQL("""INSERT INTO Apartment(apartment_id, address, city, country, size)
-                        VALUES({id}, {name})""").format(id=sql.Literal(apartment.get_id()),
+                        VALUES({id}, {address}, {city}, {country}, {size})""").format(id=sql.Literal(apartment.get_id()),
                                                         address=sql.Literal(
             apartment.get_address()),
             city=sql.Literal(
@@ -220,13 +222,58 @@ def add_apartment(apartment: Apartment) -> ReturnValue:
 
 
 def get_apartment(apartment_id: int) -> Apartment:
-    # TODO: implement
-    pass
+    conn = None
+    try:
+        conn = Connector.DBConnector()
+        rows_effected, result = conn.execute(
+            "SELECT * FROM  Apartments WHERE apartment_id = " + str(apartment_id))
+        # rows_effected is the number of rows received by the SELECT
+    except DatabaseException.ConnectionInvalid as e:
+        print(e)
+        return Apartment.bad_apartment()
+    except DatabaseException.NOT_NULL_VIOLATION as e:
+        print(e)
+        return Apartment.bad_apartment()
+    except DatabaseException.CHECK_VIOLATION as e:
+        print(e)
+        return Apartment.bad_apartment()
+    except DatabaseException.UNIQUE_VIOLATION as e:
+        print(e)
+        return Apartment.bad_apartment()
+    except DatabaseException.FOREIGN_KEY_VIOLATION as e:
+        print(e)
+        return Apartment.bad_apartment()
+    except Exception as e:
+        print(e)
+        return Apartment.bad_apartment()
+    finally:
+        conn.close()  # type: ignore
+        if rows_effected == 0:
+            return Apartment.bad_apartment()
+        return Apartment(id=result['id'][0],address=result['address'][0],city=result['city'][0],country=result['country'][0],size=result['size'][0])
 
 
 def delete_apartment(apartment_id: int) -> ReturnValue:
-    # TODO: implement
-    pass
+    conn = None
+    try:
+        conn = Connector.DBConnector()
+        rows_effected, result = conn.execute(
+            "DELETE * FROM  Apartments WHERE apartment_id = " + str(apartment_id))
+        # rows_effected is the number of rows received by the SELECT
+    except DatabaseException.ConnectionInvalid as e:
+        print(e)
+        return ReturnValue.ERROR
+    except DatabaseException.NOT_NULL_VIOLATION as e:
+        print(e)
+        return ReturnValue.BAD_PARAMS
+    except Exception as e:
+        print(e)
+        return ReturnValue.ERROR
+    finally:
+        conn.close()  # type: ignore
+        if rows_effected == 0:
+            return ReturnValue.NOT_EXISTS
+        return result
 
 
 def add_customer(customer: Customer) -> ReturnValue:
