@@ -230,18 +230,98 @@ def delete_apartment(apartment_id: int) -> ReturnValue:
 
 
 def add_customer(customer: Customer) -> ReturnValue:
-    # TODO: implement
-    pass
+    conn = None
+    try:
+        conn = Connector.DBConnector()
+        id = sql.Literal(customer.get_customer_id())
+        name = sql.Literal(customer.get_customer_name())
+        query = sql.SQL("INSERT INTO Customers(id, name) VALUES({id}, {name})").format(
+            id=id, name=name)
+        conn.execute(query)
+    except DatabaseException.ConnectionInvalid as e:
+        print(e)
+        return ReturnValue.ERROR
+    except DatabaseException.NOT_NULL_VIOLATION as e:
+        print(e)
+        return ReturnValue.BAD_PARAMS
+    except DatabaseException.CHECK_VIOLATION as e:
+        print(e)
+        return ReturnValue.ERROR
+    except DatabaseException.UNIQUE_VIOLATION as e:
+        print(e)
+        return ReturnValue.ALREADY_EXISTS
+    except DatabaseException.FOREIGN_KEY_VIOLATION as e:
+        print(e)
+        return ReturnValue.ERROR
+    except Exception as e:
+        print(e)
+    finally:
+        conn.close()  # type: ignore
+        return ReturnValue.OK
 
 
 def get_customer(customer_id: int) -> Customer:
-    # TODO: implement
-    pass
+    conn = None
+    try:
+        conn = Connector.DBConnector()
+        rows_affected, result = conn.execute(
+            "SELECT * FROM Owners WHERE id = " + str(customer_id))
+    except DatabaseException.ConnectionInvalid as e:
+        print(e)
+        return Customer.bad_customer()
+    except DatabaseException.NOT_NULL_VIOLATION as e:
+        print(e)
+        return Customer.bad_customer()
+    except DatabaseException.CHECK_VIOLATION as e:
+        print(e)
+        return Customer.bad_customer()
+    except DatabaseException.UNIQUE_VIOLATION as e:
+        print(e)
+        return Customer.bad_customer()
+    except DatabaseException.FOREIGN_KEY_VIOLATION as e:
+        print(e)
+        return Customer.bad_customer()
+    except Exception as e:
+        print(e)
+        return Customer.bad_customer()
+    finally:
+        conn.close()  # type: ignore
+        if rows_affected == 0:
+            return Customer.bad_customer()
+        id = result['id'][0]
+        name = result['name'][0]
+        return Customer(id, name)
 
 
 def delete_customer(customer_id: int) -> ReturnValue:
-    # TODO: implement
-    pass
+    conn = None
+    try:
+        conn = Connector.DBConnector()
+        query = sql.SQL("DELETE FROM Customers WHERE id={0}").format(
+            sql.Literal(customer_id))
+        rows_affected, _ = conn.execute(query)
+        if rows_affected == 0:
+            return ReturnValue.NOT_EXISTS
+    except DatabaseException.ConnectionInvalid as e:
+        print(e)
+        return ReturnValue.ERROR
+    except DatabaseException.NOT_NULL_VIOLATION as e:
+        print(e)
+        return ReturnValue.BAD_PARAMS
+    except DatabaseException.CHECK_VIOLATION as e:
+        print(e)
+        return ReturnValue.ERROR
+    except DatabaseException.UNIQUE_VIOLATION as e:
+        print(e)
+        return ReturnValue.ERROR
+    except DatabaseException.FOREIGN_KEY_VIOLATION as e:
+        print(e)
+        return ReturnValue.ERROR
+    except Exception as e:
+        print(e)
+    finally:
+        conn.close()  # type: ignore
+        return ReturnValue.OK
 
 
 def customer_made_reservation(customer_id: int, apartment_id: int, start_date: date, end_date: date, total_price: float) -> ReturnValue:
