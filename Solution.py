@@ -20,10 +20,11 @@ def create_tables():
         conn.execute(
             "CREATE TABLE Owners(id INTEGER PRIMARY KEY, name TEXT NOT NULL)")
         conn.execute("""CREATE TABLE Apartments (
-            apartment_id SERIAL PRIMARY KEY,
-            city VARCHAR(255) NOT NULL,
-            country VARCHAR(255) NOT NULL,
-            address VARCHAR(255) NOT NULL,
+            apartment_id INTEGER PRIMARY KEY,
+            city TEXT NOT NULL,
+            country TEXT NOT NULL,
+            address TEXT NOT NULL,
+            size INTEGER NOT NULL,
             UNIQUE (city, country, address)
         );""")
         conn.execute(
@@ -41,7 +42,7 @@ def create_tables():
     except Exception as e:
         print(e)
     finally:
-        conn.close() # type: ignore
+        conn.close()  # type: ignore
 
 
 def clear_tables():
@@ -64,7 +65,7 @@ def clear_tables():
     except Exception as e:
         print(e)
     finally:
-        conn.close() # type: ignore
+        conn.close()  # type: ignore
 
 
 def drop_tables():
@@ -87,7 +88,7 @@ def drop_tables():
     except Exception as e:
         print(e)
     finally:
-        conn.close() # type: ignore
+        conn.close()  # type: ignore
 
 
 def add_owner(owner: Owner) -> ReturnValue:
@@ -115,7 +116,7 @@ def add_owner(owner: Owner) -> ReturnValue:
     except Exception as e:
         print(e)
     finally:
-        conn.close() # type: ignore
+        conn.close()  # type: ignore
         return ReturnValue.OK
 
 
@@ -123,7 +124,8 @@ def get_owner(owner_id: int) -> Owner:
     conn = None
     try:
         conn = Connector.DBConnector()
-        rows_effected, result = conn.execute("SELECT * FROM Owners WHERE id = " + str(owner_id))
+        rows_effected, result = conn.execute(
+            "SELECT * FROM Owners WHERE id = " + str(owner_id))
         # rows_effected is the number of rows received by the SELECT
     except DatabaseException.ConnectionInvalid as e:
         print(e)
@@ -144,14 +146,16 @@ def get_owner(owner_id: int) -> Owner:
         print(e)
         return Owner.bad_owner()
     finally:
-        conn.close() # type: ignore
+        conn.close()  # type: ignore
         return result
+
 
 def delete_owner(owner_id: int) -> ReturnValue:
     conn = None
     try:
         conn = Connector.DBConnector()
-        query = sql.SQL("DELETE FROM Owners WHERE id={0}").format(sql.Literal(owner_id))
+        query = sql.SQL("DELETE FROM Owners WHERE id={0}").format(
+            sql.Literal(owner_id))
         rows_affected, _ = conn.execute(query)
         if rows_affected == 0:
             return ReturnValue.NOT_EXISTS
@@ -173,12 +177,44 @@ def delete_owner(owner_id: int) -> ReturnValue:
     except Exception as e:
         print(e)
     finally:
-        conn.close() # type: ignore
+        conn.close()  # type: ignore
         return ReturnValue.OK
 
 
 def add_apartment(apartment: Apartment) -> ReturnValue:
-    
+    conn = None
+    try:
+        conn = Connector.DBConnector()        # add owner
+        id = sql.Literal(apartment.get_id())
+        address = sql.Literal(apartment.get_address())
+        city = sql.Literal(apartment.get_city())
+        country = sql.Literal(apartment.get_country())
+        size = sql.Literal(apartment.get_size())
+
+        query = sql.SQL(
+            f"""INSERT INTO Apartments(id, address, city, country, size)
+            VALUES({id}, {address}, {city}, {country}, {size})""")
+        conn.execute(query)
+    except DatabaseException.ConnectionInvalid as e:
+        print(e)
+        return ReturnValue.ERROR
+    except DatabaseException.NOT_NULL_VIOLATION as e:
+        print(e)
+        return ReturnValue.BAD_PARAMS
+    except DatabaseException.CHECK_VIOLATION as e:
+        print(e)
+        return ReturnValue.ERROR
+    except DatabaseException.UNIQUE_VIOLATION as e:
+        print(e)
+        return ReturnValue.ALREADY_EXISTS
+    except DatabaseException.FOREIGN_KEY_VIOLATION as e:
+        print(e)
+        return ReturnValue.ERROR
+    except Exception as e:
+        print(e)
+    finally:
+        conn.close()  # type: ignore
+        return ReturnValue.OK
     pass
 
 
