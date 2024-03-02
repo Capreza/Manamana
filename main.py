@@ -14,7 +14,10 @@ if __name__ == '__main__':
 
     print("3. Get owner with ID 1")
     owner = get_owner(1)
+    print(type(owner))
     print(owner['id'][0])
+    # print(owner.get_owner_name())
+    # print(owner)
 
     # print("4. Try adding owner with ID 1 and name Gal")
     # illegal_owner = Owner(1, 'Gal')
@@ -23,4 +26,12 @@ if __name__ == '__main__':
     print("5. Add apartment")
     apartment = Apartment(123, 'Rothschild 114' , 'Tel Aviv', 'Israel', 100)
     add_apartment(apartment)
+
+    print("6. Get apartment with ID 123")
+    fetched_apartment = get_apartment(123)
+    print(fetched_apartment)
+
+    print('delete all tables')
+    drop_tables()
+
 
