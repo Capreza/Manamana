@@ -29,6 +29,11 @@ def create_tables():
         );""")
         conn.execute(
             "CREATE TABLE Customers (id INTEGER PRIMARY KEY, name TEXT NOT NULL);")
+        conn.execute(
+            "CREATE TABLE Reviews (aid INTEGER NOT NULL, cid INTEGER NOT NULL, text TEXT, date DATE, rating INTEGER, PRIMARY KEY (aid, cid));")
+        conn.execute(
+            "CREATE TABLE Reservations (aid INTEGER NOT NULL, cid INTEGER NOT NULL, start_date DATE, end_date DATE, total_price FLOAT, PRIMARY KEY(aid,cid,start_date));")
+        print("created reservations")
     except DatabaseException.ConnectionInvalid as e:
         print(e)
     except DatabaseException.NOT_NULL_VIOLATION as e:
@@ -52,6 +57,7 @@ def clear_tables():
         conn.execute("DELETE FROM Owners")
         conn.execute("DELETE FROM Apartments")
         conn.execute("DELETE FROM Customers")
+        conn.execute("DELETE FROM Reservations")
     except DatabaseException.ConnectionInvalid as e:
         print(e)
     except DatabaseException.NOT_NULL_VIOLATION as e:
@@ -75,6 +81,7 @@ def drop_tables():
         conn.execute("DROP TABLE Owners")
         conn.execute("DROP TABLE Apartments")
         conn.execute("DROP TABLE Customers")
+        conn.execute("DROP TABLE Reservations")
     except DatabaseException.ConnectionInvalid as e:
         print(e)
     except DatabaseException.NOT_NULL_VIOLATION as e:
@@ -94,9 +101,10 @@ def drop_tables():
 def add_owner(owner: Owner) -> ReturnValue:
     conn = None
     try:
-        conn = Connector.DBConnector()        # add owner
-        query = sql.SQL("INSERT INTO Owners(id, name) VALUES({id}, {name})").format(id=sql.Literal(owner.get_owner_id()),
-                                                                                    name=sql.Literal(owner.get_owner_name()))
+        conn = Connector.DBConnector()  # add owner
+        query = sql.SQL("INSERT INTO Owners(id, name) VALUES({id}, {name})").format(
+            id=sql.Literal(owner.get_owner_id()),
+            name=sql.Literal(owner.get_owner_name()))
         conn.execute(query)
     except DatabaseException.ConnectionInvalid as e:
         print(e)
@@ -149,7 +157,7 @@ def get_owner(owner_id: int) -> Owner:
         conn.close()  # type: ignore
         if rows_effected == 0:
             return Owner.bad_owner()
-        return Owner(owner_id=result['id'][0],owner_name=result['name'][0])
+        return Owner(owner_id=result['id'][0], owner_name=result['name'][0])
 
 
 def delete_owner(owner_id: int) -> ReturnValue:
@@ -186,15 +194,16 @@ def delete_owner(owner_id: int) -> ReturnValue:
 def add_apartment(apartment: Apartment) -> ReturnValue:
     conn = None
     try:
-        conn = Connector.DBConnector()        # add owner
-        query = sql.SQL("""INSERT INTO Apartment(apartment_id, address, city, country, size)
-                        VALUES({id}, {address}, {city}, {country}, {size})""").format(id=sql.Literal(apartment.get_id()),
-                                                        address=sql.Literal(
-            apartment.get_address()),
+        conn = Connector.DBConnector()  # add owner
+        query = sql.SQL("""INSERT INTO Apartments(apartment_id, address, city, country, size)
+                        VALUES({id}, {address}, {city}, {country}, {size})""").format(
+            id=sql.Literal(apartment.get_id()),
+            address=sql.Literal(
+                apartment.get_address()),
             city=sql.Literal(
-            apartment.get_city()),
+                apartment.get_city()),
             country=sql.Literal(
-            apartment.get_country()),
+                apartment.get_country()),
             size=sql.Literal(apartment.get_size()))
 
         conn.execute(query)
@@ -226,7 +235,7 @@ def get_apartment(apartment_id: int) -> Apartment:
     try:
         conn = Connector.DBConnector()
         rows_effected, result = conn.execute(
-            "SELECT * FROM  Apartments WHERE apartment_id = " + str(apartment_id))
+            "SELECT * FROM Apartments WHERE apartment_id = " + str(apartment_id))
         # rows_effected is the number of rows received by the SELECT
     except DatabaseException.ConnectionInvalid as e:
         print(e)
@@ -250,15 +259,16 @@ def get_apartment(apartment_id: int) -> Apartment:
         conn.close()  # type: ignore
         if rows_effected == 0:
             return Apartment.bad_apartment()
-        return Apartment(id=result['id'][0],address=result['address'][0],city=result['city'][0],country=result['country'][0],size=result['size'][0])
+        return Apartment(id=result['apartment_id'][0], address=result['address'][0], city=result['city'][0],
+                         country=result['country'][0], size=result['size'][0])
 
 
 def delete_apartment(apartment_id: int) -> ReturnValue:
     conn = None
     try:
         conn = Connector.DBConnector()
-        rows_effected, result = conn.execute(
-            "DELETE * FROM  Apartments WHERE apartment_id = " + str(apartment_id))
+        rows_effected, _ = conn.execute(
+            "DELETE FROM Apartments WHERE apartment_id = " + str(apartment_id))
         # rows_effected is the number of rows received by the SELECT
     except DatabaseException.ConnectionInvalid as e:
         print(e)
@@ -273,7 +283,7 @@ def delete_apartment(apartment_id: int) -> ReturnValue:
         conn.close()  # type: ignore
         if rows_effected == 0:
             return ReturnValue.NOT_EXISTS
-        return result
+        return ReturnValue.OK
 
 
 def add_customer(customer: Customer) -> ReturnValue:
@@ -312,7 +322,7 @@ def get_customer(customer_id: int) -> Customer:
     try:
         conn = Connector.DBConnector()
         rows_affected, result = conn.execute(
-            "SELECT * FROM Owners WHERE id = " + str(customer_id))
+            "SELECT * FROM Customers WHERE id = " + str(customer_id))
     except DatabaseException.ConnectionInvalid as e:
         print(e)
         return Customer.bad_customer()
@@ -371,9 +381,61 @@ def delete_customer(customer_id: int) -> ReturnValue:
         return ReturnValue.OK
 
 
-def customer_made_reservation(customer_id: int, apartment_id: int, start_date: date, end_date: date, total_price: float) -> ReturnValue:
-    # TODO: implement
-    pass
+def customer_made_reservation(customer_id: int, apartment_id: int, start_date: date, end_date: date,total_cost: float,
+                              conn=None):
+
+    try:
+        conn = Connector.DBConnector()
+
+        query = sql.SQL(f"""
+        DROP VIEW ApartmentReservations{apartment_id}
+        """)
+        _ , _ = conn.execute(query)
+
+        query = sql.SQL(f"""
+        CREATE VIEW ApartmentReservations{apartment_id} as
+        SELECT *
+        FROM Reservations
+        WHERE aid = {apartment_id}
+        """)
+        _ , _ = conn.execute(query)
+        query = sql.SQL(f"""
+        IF NOT EXISTS
+            (
+            SELECT *
+            FROM ApartmentReservations{apartment_id}
+            WHERE 
+            NOT({start_date.strftime('%Y-%m-%d')}>end_date OR {end_date.strftime('%Y-%m-%d')}<start_date)
+            )
+            INSERT INTO Reservations(aid,cid,start_date,end_date,total_cost)
+                VALUES({customer_id,apartment_id,start_date.strftime('%Y-%m-%d'),end_date.strftime('%Y-%m-%d'),total_cost}
+        """)
+        rows_affected, _ = conn.execute(query)
+        query = sql.SQL(f"""
+        DROP VIEW ApartmentReservations{apartment_id}
+        """)
+        _ , _ = conn.execute(query)
+
+    except DatabaseException.ConnectionInvalid as e:
+        print(e)
+        return ReturnValue.ERROR
+    except DatabaseException.NOT_NULL_VIOLATION as e:
+        print(e)
+        return ReturnValue.BAD_PARAMS
+    except DatabaseException.CHECK_VIOLATION as e:
+        print(e)
+        return ReturnValue.ERROR
+    except DatabaseException.UNIQUE_VIOLATION as e:
+        print(e)
+        return ReturnValue.ERROR
+    except DatabaseException.FOREIGN_KEY_VIOLATION as e:
+        print(e)
+        return ReturnValue.ERROR
+    except Exception as e:
+        print(e)
+    finally:
+        conn.close()  # type: ignore
+        return ReturnValue.OK
 
 
 def customer_cancelled_reservation(customer_id: int, apartment_id: int, start_date: date) -> ReturnValue:
@@ -381,12 +443,14 @@ def customer_cancelled_reservation(customer_id: int, apartment_id: int, start_da
     pass
 
 
-def customer_reviewed_apartment(customer_id: int, apartment_id: int, review_date: date, rating: int, review_text: str) -> ReturnValue:
+def customer_reviewed_apartment(customer_id: int, apartment_id: int, review_date: date, rating: int,
+                                review_text: str) -> ReturnValue:
     # TODO: implement
     pass
 
 
-def customer_updated_review(customer_id: int, apartmetn_id: int, update_date: date, new_rating: int, new_text: str) -> ReturnValue:
+def customer_updated_review(customer_id: int, apartmetn_id: int, update_date: date, new_rating: int,
+                            new_text: str) -> ReturnValue:
     # TODO: implement
     pass
 
@@ -453,3 +517,5 @@ def profit_per_month(year: int) -> List[Tuple[int, float]]:
 def get_apartment_recommendation(customer_id: int) -> List[Tuple[Apartment, float]]:
     # TODO: implement
     pass
+
+
