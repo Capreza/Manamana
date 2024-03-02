@@ -2,8 +2,8 @@ from Solution import *
 
 if __name__ == '__main__':
 
-    # print('delete all tables')
-    # drop_tables()
+    print('delete all tables')
+    drop_tables()
 
     print("0. Creating all tables")
     create_tables()
@@ -25,16 +25,16 @@ if __name__ == '__main__':
     # add_owner(illegal_owner)
 
     print("5. Add apartment")
-    apartment = Apartment(123, 'Rothschild 114' , 'Tel Aviv', 'Israel', 100)
+    apartment = Apartment(123, 'Rothschild 114', 'Tel Aviv', 'Israel', 100)
     add_apartment(apartment)
 
     print("6. Get apartment with ID 123")
     fetched_apartment = get_apartment(123)
     print(fetched_apartment)
 
-    print("7. delete apartment with ID 123")
-    fetched_apartment = delete_apartment(123)
-    print(fetched_apartment)
+    # print("7. delete apartment with ID 123")
+    # fetched_apartment = delete_apartment(123)
+    # print(fetched_apartment)
 
     print("8. Add customer")
     cust = Customer(1234, 'itzik')
@@ -44,17 +44,19 @@ if __name__ == '__main__':
     customer = get_customer(1234)
     print(customer)
 
-    print("10. delete customer with ID 1234")
-    customer = delete_customer(1234)
-    print(customer)
+    # print("10. delete customer with ID 1234")
+    # customer = delete_customer(1234)
+    # print(customer)
 
     print("11. add reservation 2.3-5.3")
-    reservation = customer_made_reservation(1234,123,datetime.today(),datetime.today().replace(day=5),total_cost=69)
+    reservation = customer_made_reservation(
+        12345, 123, datetime.today(), datetime.today().replace(day=5), total_cost=69)
     print(reservation)
 
-    print("12. add reservation 2.3-4.3")
-    reservation = customer_made_reservation(1234,123,datetime.today(),datetime.today().replace(day=4),total_cost=69)
-    print(reservation)
+    # print("12. add reservation 2.3-4.3")
+    # reservation = customer_made_reservation(
+    #     12345, 123, datetime.today(), datetime.today().replace(day=4), total_cost=69)
+    # print(reservation)
 
-    # print('delete all tables')
-    # drop_tables()
+    print('delete all tables')
+    drop_tables()

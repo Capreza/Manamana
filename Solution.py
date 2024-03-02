@@ -18,8 +18,6 @@ def create_tables():
     try:
         conn = Connector.DBConnector()
         conn.execute(
-            "CREATE TABLE Reservations (aid INTEGER NOT NULL, cid INTEGER NOT NULL, start_date DATE, end_date DATE, total_cost FLOAT, PRIMARY KEY(aid,cid,start_date));")
-        conn.execute(
             "CREATE TABLE Owners(id INTEGER PRIMARY KEY, name TEXT NOT NULL)")
         conn.execute("""CREATE TABLE Apartments (
             apartment_id INTEGER PRIMARY KEY,
@@ -32,7 +30,12 @@ def create_tables():
         conn.execute(
             "CREATE TABLE Customers (id INTEGER PRIMARY KEY, name TEXT NOT NULL);")
         conn.execute(
-            "CREATE TABLE Reviews (aid INTEGER NOT NULL, cid INTEGER NOT NULL, text TEXT, date DATE, rating INTEGER, PRIMARY KEY (aid, cid));")
+            """CREATE TABLE Reservations (aid INTEGER NOT NULL, cid INTEGER NOT NULL, start_date DATE, end_date DATE, total_cost FLOAT, PRIMARY KEY(aid,cid,start_date),
+            FOREIGN KEY (aid) REFERENCES Apartments(apartment_id),
+            FOREIGN KEY (cid) REFERENCES Customers(id));""")
+        conn.execute(
+            """CREATE TABLE Reviews (aid INTEGER NOT NULL, cid INTEGER NOT NULL, text TEXT, date DATE, rating INTEGER, PRIMARY KEY (aid, cid),FOREIGN KEY (aid) REFERENCES Apartments(apartment_id),
+            FOREIGN KEY (cid) REFERENCES Customers(id));""")
         print("created reservations")
     except DatabaseException.ConnectionInvalid as e:
         print(e)
@@ -439,11 +442,16 @@ def customer_made_reservation(customer_id: int, apartment_id: int, start_date: d
         return ReturnValue.ERROR
     except DatabaseException.FOREIGN_KEY_VIOLATION as e:
         print(e)
-        return ReturnValue.ERROR
+        print('found foreign key violation')
+        return ReturnValue.NOT_EXISTS
     except Exception as e:
         print(e)
     finally:
         conn.close()  # type: ignore
+        if rows_affected == 0:
+            # this means that the reservation was not made but no DB error raised
+            # so the reason is conflict with another reservation
+            return ReturnValue.BAD_PARAMS
         return ReturnValue.OK
 
 
