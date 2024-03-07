@@ -200,7 +200,7 @@ def delete_owner(owner_id: int) -> ReturnValue:
 
 
 def add_apartment(apartment: Apartment) -> ReturnValue:
-    if apartment.get_id()<=0 or apartment.get_size()<=0:
+    if apartment.get_id() <= 0 or apartment.get_size() <= 0:
         return ReturnValue.BAD_PARAMS
     conn = None
     try:
@@ -239,7 +239,6 @@ def add_apartment(apartment: Apartment) -> ReturnValue:
     return ReturnValue.OK
 
 
-
 def get_apartment(apartment_id: int) -> Apartment:
     conn = None
     try:
@@ -274,7 +273,7 @@ def get_apartment(apartment_id: int) -> Apartment:
 
 
 def delete_apartment(apartment_id: int) -> ReturnValue:
-    if apartment_id<=0:
+    if apartment_id <= 0:
         return ReturnValue.BAD_PARAMS
     conn = None
     try:
@@ -299,7 +298,7 @@ def delete_apartment(apartment_id: int) -> ReturnValue:
 
 
 def add_customer(customer: Customer) -> ReturnValue:
-    if customer.get_customer_id()<=0:
+    if customer.get_customer_id() is None or customer.get_customer_id() <= 0:
         return ReturnValue.BAD_PARAMS
     conn = None
     try:
@@ -365,7 +364,7 @@ def get_customer(customer_id: int) -> Customer:
 
 
 def delete_customer(customer_id: int) -> ReturnValue:
-    if customer_id<=0:
+    if customer_id <= 0:
         return ReturnValue.BAD_PARAMS
     conn = None
     try:
@@ -399,6 +398,12 @@ def delete_customer(customer_id: int) -> ReturnValue:
 
 def customer_made_reservation(customer_id: int, apartment_id: int, start_date: date, end_date: date, total_cost: float,
                               conn=None):
+    if customer_id is None or apartment_id is None or total_cost is None or start_date is None or end_date is None:
+        return ReturnValue.BAD_PARAMS
+
+    if customer_id <= 0 or apartment_id <= 0 or total_cost <= 0 or end_date <= start_date:
+        return ReturnValue.BAD_PARAMS
+
     try:
         conn = Connector.DBConnector()
         query = sql.SQL("""
@@ -408,8 +413,8 @@ def customer_made_reservation(customer_id: int, apartment_id: int, start_date: d
             SELECT 1 FROM Reservations
             WHERE aid = {apartment_id}
             AND NOT(
-                {start_date} > end_date OR
-                {end_date} < start_date
+                {start_date} >= end_date OR
+                {end_date} <= start_date
             )
         )
         """).format(
@@ -449,13 +454,16 @@ def customer_made_reservation(customer_id: int, apartment_id: int, start_date: d
 
 
 def customer_cancelled_reservation(customer_id: int, apartment_id: int, start_date: date) -> ReturnValue:
+    if customer_id is None or apartment_id is None or start_date is None:
+        return ReturnValue.BAD_PARAMS
+
+    if customer_id <= 0 or apartment_id <= 0:
+        return ReturnValue.BAD_PARAMS
     try:
         conn = Connector.DBConnector()
         query = sql.SQL("""
-        DELETE * FROM Reservations WHERE cid = {customer_id} AND aid = {apartment_id} AND start_date = {start_date}
-            )
-        )
-        """).format(
+        DELETE FROM Reservations WHERE cid = {customer_id} AND aid = {apartment_id} AND start_date = {start_date}
+       """).format(
             apartment_id=sql.Literal(apartment_id),
             customer_id=sql.Literal(customer_id),
             start_date=sql.Literal(start_date.strftime('%Y-%m-%d')),
@@ -471,9 +479,55 @@ def customer_cancelled_reservation(customer_id: int, apartment_id: int, start_da
     except DatabaseException.CHECK_VIOLATION as e:
         print(e)
         return ReturnValue.ERROR
-    except DatabaseException.UNIQUE_VIOLATION as e:
+    except Exception as e:
+        print(e)
+    finally:
+        conn.close()  # type: ignore
+    if rows_affected == 0:
+        # this means that the reservation did not exist
+        return ReturnValue.NOT_EXISTS
+    return ReturnValue.OK
+
+
+def customer_reviewed_apartment(customer_id: int, apartment_id: int, review_date: date, rating: int,
+                                review_text: str) -> ReturnValue:
+    if customer_id is None or apartment_id is None or review_date is None or rating is None or review_text is None:
+        return ReturnValue.BAD_PARAMS
+
+    if customer_id <= 0 or apartment_id <= 0 or 0 >= rating or rating > 10:
+        return ReturnValue.BAD_PARAMS
+
+    try:
+        conn = Connector.DBConnector()
+        query = sql.SQL("""
+        INSERT INTO Reviews(aid, cid, text, date, rating)
+        SELECT {apartment_id}, {customer_id}, {text}, {date}, {rating}
+        WHERE EXISTS (
+            SELECT 1 FROM Reservations
+            WHERE aid = {apartment_id} AND cid = {customer_id}
+            AND {date} >= end_date
+        )
+        """).format(
+            apartment_id=sql.Literal(apartment_id),
+            customer_id=sql.Literal(customer_id),
+            date=sql.Literal(review_date.strftime('%Y-%m-%d')),
+            rating=sql.Literal(rating),
+            text=sql.Literal(review_text)
+        )
+        rows_affected, _ = conn.execute(query)
+
+    except DatabaseException.ConnectionInvalid as e:
         print(e)
         return ReturnValue.ERROR
+    except DatabaseException.NOT_NULL_VIOLATION as e:
+        print(e)
+        return ReturnValue.BAD_PARAMS
+    except DatabaseException.CHECK_VIOLATION as e:
+        print(e)
+        return ReturnValue.ERROR
+    except DatabaseException.UNIQUE_VIOLATION as e:
+        print(e)
+        return ReturnValue.ALREADY_EXISTS  # not sure about this
     except DatabaseException.FOREIGN_KEY_VIOLATION as e:
         print(e)
         print('found foreign key violation')
@@ -485,20 +539,58 @@ def customer_cancelled_reservation(customer_id: int, apartment_id: int, start_da
     if rows_affected == 0:
         # this means that the reservation was not made but no DB error raised
         # so the reason is conflict with another reservation
-        return ReturnValue.BAD_PARAMS
+        return ReturnValue.NOT_EXISTS
     return ReturnValue.OK
 
 
-def customer_reviewed_apartment(customer_id: int, apartment_id: int, review_date: date, rating: int,
-                                review_text: str) -> ReturnValue:
-    # TODO: implement
-    pass
-
-
-def customer_updated_review(customer_id: int, apartmetn_id: int, update_date: date, new_rating: int,
+def customer_updated_review(customer_id: int, apartment_id: int, update_date: date, new_rating: int,
                             new_text: str) -> ReturnValue:
-    # TODO: implement
-    pass
+    if customer_id is None or apartment_id is None or update_date is None or new_rating is None or new_text is None:
+        return ReturnValue.BAD_PARAMS
+
+    if customer_id <= 0 or apartment_id <= 0 or 0 >= new_rating or new_rating > 10:
+        return ReturnValue.BAD_PARAMS
+
+    try:
+        conn = Connector.DBConnector()
+        query = sql.SQL("""
+        UPDATE Reviews
+        SET text={new_text}, date={update_date}, rating={new_rating}
+        WHERE aid={apartment_id} AND cid={customer_id} AND date <= {update_date}
+        """).format(
+            apartment_id=sql.Literal(apartment_id),
+            customer_id=sql.Literal(customer_id),
+            update_date=sql.Literal(update_date.strftime('%Y-%m-%d')),
+            new_rating=sql.Literal(new_rating),
+            new_text=sql.Literal(new_text)
+        )
+        rows_affected, _ = conn.execute(query)
+
+    except DatabaseException.ConnectionInvalid as e:
+        print(e)
+        return ReturnValue.ERROR
+    except DatabaseException.NOT_NULL_VIOLATION as e:
+        print(e)
+        return ReturnValue.BAD_PARAMS
+    except DatabaseException.CHECK_VIOLATION as e:
+        print(e)
+        return ReturnValue.ERROR
+    except DatabaseException.UNIQUE_VIOLATION as e:
+        print(e)
+        return ReturnValue.ALREADY_EXISTS  # not sure about this
+    except DatabaseException.FOREIGN_KEY_VIOLATION as e:
+        print(e)
+        print('found foreign key violation')
+        return ReturnValue.NOT_EXISTS
+    except Exception as e:
+        print(e)
+    finally:
+        conn.close()  # type: ignore
+    if rows_affected == 0:
+        # this means that the reservation was not made but no DB error raised
+        # so the reason is conflict with another reservation
+        return ReturnValue.NOT_EXISTS
+    return ReturnValue.OK
 
 
 def owner_owns_apartment(owner_id: int, apartment_id: int) -> ReturnValue:

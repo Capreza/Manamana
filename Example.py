@@ -158,3 +158,4 @@ if __name__ == '__main__':
             print(str(col) + "=" + str(current_row[col]))
     print("9. Dropping all tables - empty database")
     dropTable()
+

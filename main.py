@@ -48,10 +48,12 @@ if __name__ == '__main__':
     # customer = delete_customer(1234)
     # print(customer)
 
-    print("11. add reservation 2.3-5.3")
+    print("11. add reservation today-9.3")
     reservation = customer_made_reservation(
-        12345, 123, datetime.today(), datetime.today().replace(day=5), total_cost=69)
+        1234, 123, datetime.today(), datetime.today().replace(day=9), total_cost=69)
     print(reservation)
+
+    print("12. add review ")
 
     # print("12. add reservation 2.3-4.3")
     # reservation = customer_made_reservation(
