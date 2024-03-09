@@ -525,7 +525,6 @@ class TestCRUD(unittest.TestCase):
         print("// ==== test_BASIC_API: SUCCESS! ==== //")
 
     def test_Advanced_API(self):
-        return
         print("Running Test: test_Advanced_API...")
         self.assertEqual(add_owner(Owner(1,"OA")),ReturnValue.OK)
         self.assertEqual(add_owner(Owner(2,"OB")),ReturnValue.OK)
@@ -551,6 +550,7 @@ class TestCRUD(unittest.TestCase):
         self.assertEqual(owner_owns_apartment(1,8),ReturnValue.OK)
         self.assertEqual(get_all_location_owners(),[])
         self.assertEqual(owner_owns_apartment(1,11),ReturnValue.OK)
+        _ = get_all_location_owners()
         self.assertEqual(get_all_location_owners(),[])
         self.assertEqual(owner_owns_apartment(1,10),ReturnValue.OK)
         self.assertEqual(get_all_location_owners(),[])
@@ -587,7 +587,7 @@ class TestCRUD(unittest.TestCase):
         profitPerMonth : List[Tuple[int, float]] = []
         for i in range(1,13):
             profitPerMonth.append((i,0))
-
+        #
         self.assertEqual(profit_per_month(2023),profitPerMonth)
         self.assertEqual(profit_per_month(2024),profitPerMonth)
         # January   

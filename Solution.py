@@ -981,8 +981,40 @@ def reservations_per_owner() -> List[Tuple[str, int]]:
 # ---------------------------------- ADVANCED API: ----------------------------------
 
 def get_all_location_owners() -> List[Owner]:
-    # TODO: implement
-    pass
+    conn = None
+    try:
+        conn = Connector.DBConnector()  # add owner
+        query = sql.SQL(""" 
+                SELECT Owners.id, Owners.name
+                FROM Owners, Owns, Apartments
+                WHERE Owners.id = Owns.oid and Owns.aid = Apartments.apartment_id 
+                GROUP BY Owners.id
+                HAVING COUNT(DISTINCT (Apartments.city,Apartments.country)) = (SELECT COUNT(DISTINCT (city,country)) FROM Apartments)                 
+                            """)
+        rows_affected, result = conn.execute(query)
+
+
+    except DatabaseException.ConnectionInvalid as e:
+        print(e)
+        return []
+    except DatabaseException.NOT_NULL_VIOLATION as e:
+        print(e)
+        return []
+    except DatabaseException.CHECK_VIOLATION as e:
+        print(e)
+        return []
+    except DatabaseException.UNIQUE_VIOLATION as e:
+        print(e)
+        return []
+    except DatabaseException.FOREIGN_KEY_VIOLATION as e:
+        print(e)
+        return []
+    except Exception as e:
+        print(e)
+    finally:
+        conn.close()  # type: ignore
+
+    return [Owner(result['id'][i],result['name'][i]) for i in range(len(result['id']))]
 
 
 def best_value_for_money() -> Apartment:
@@ -991,8 +1023,45 @@ def best_value_for_money() -> Apartment:
 
 
 def profit_per_month(year: int) -> List[Tuple[int, float]]:
-    # TODO: implement
-    pass
+    conn = None
+    try:
+        # reservations by month in given year
+
+        conn = Connector.DBConnector()  # add owner
+        query = sql.SQL(""" 
+                SELECT generate_series as month, COALESCE(SUM(total_cost)*0.15,0) as total_profit FROM(
+                (SELECT * FROM GENERATE_SERIES(1,12,1)) months LEFT OUTER JOIN (
+                SELECT extract(month from end_date) as month, total_cost
+                FROM Reservations
+                WHERE extract(year from end_date) = 2023
+                ) res_by_month
+                ON months.generate_series = res_by_month.month) GROUP BY generate_series;
+                            """.format(year=sql.Literal(year)))
+        rows_affected, result = conn.execute(query)
+
+
+    except DatabaseException.ConnectionInvalid as e:
+        print(e)
+        return []
+    except DatabaseException.NOT_NULL_VIOLATION as e:
+        print(e)
+        return []
+    except DatabaseException.CHECK_VIOLATION as e:
+        print(e)
+        return []
+    except DatabaseException.UNIQUE_VIOLATION as e:
+        print(e)
+        return []
+    except DatabaseException.FOREIGN_KEY_VIOLATION as e:
+        print(e)
+        return []
+    except Exception as e:
+        print(e)
+    finally:
+        conn.close()  # type: ignore
+
+    return [(result['month'][i], result['total_profit'][i]) for i in range(len(result['month']))]
+
 
 
 def get_apartment_recommendation(customer_id: int) -> List[Tuple[Apartment, float]]:
