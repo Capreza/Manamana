@@ -762,23 +762,220 @@ def get_owner_apartments(owner_id: int) -> List[Apartment]:
 # ---------------------------------- BASIC API: ----------------------------------
 
 def get_apartment_rating(apartment_id: int) -> float:
-    # TODO: implement
-    pass
+    conn = None
+    try:
+
+        conn = Connector.DBConnector()  # add owner
+        query = sql.SQL(""" 
+                            CREATE VIEW ApartmentRatings AS
+                            SELECT apartment_id, COALESCE(AVG(rating),0) rating
+                            FROM (
+                            SELECT * FROM Apartments LEFT OUTER JOIN Reviews
+                                ON Apartments.apartment_id = Reviews.aid)
+                            GROUP BY apartment_id;
+                            """)
+        rows_affected, result = conn.execute(query)
+        query = sql.SQL(""" 
+                            SELECT rating
+                            FROM ApartmentRatings
+                            WHERE apartment_id = {aid}
+                            """).format(
+            aid=sql.Literal(apartment_id))
+        rows_affected, result = conn.execute(query)
+
+        query = sql.SQL(""" 
+                            DROP VIEW ApartmentRatings
+                            """)
+        _, _ = conn.execute(query)
+    except DatabaseException.ConnectionInvalid as e:
+        print(e)
+        return []
+    except DatabaseException.NOT_NULL_VIOLATION as e:
+        print(e)
+        return []
+    except DatabaseException.CHECK_VIOLATION as e:
+        print(e)
+        return []
+    except DatabaseException.UNIQUE_VIOLATION as e:
+        print(e)
+        return []
+    except DatabaseException.FOREIGN_KEY_VIOLATION as e:
+        print(e)
+        return []
+    except Exception as e:
+        print(e)
+    finally:
+        conn.close()  # type: ignore
+    return result['rating'][0]
+
 
 
 def get_owner_rating(owner_id: int) -> float:
-    # TODO: implement
-    pass
+    conn = None
+    try:
+
+        conn = Connector.DBConnector()  # add owner
+        query = sql.SQL(""" 
+                            CREATE VIEW ApartmentRatings AS
+                            SELECT apartment_id, COALESCE(AVG(rating),0) rating
+                            FROM (
+                            SELECT * FROM Apartments LEFT OUTER JOIN Reviews
+                                ON Apartments.apartment_id = Reviews.aid)
+                            GROUP BY apartment_id;
+                            """)
+        rows_affected, result = conn.execute(query)
+        # query = sql.SQL("""
+        #                     CREATE VIEW OwnerApartments{oid} AS
+        #                     SELECT *
+        #                     FROM Owns
+        #                     WHERE oid = {oid}
+        #                     """).format(
+        #     oid=sql.Literal(owner_id))
+        # rows_affected, result = conn.execute(query)
+        query = sql.SQL(""" 
+                            SELECT COALESCE(AVG(ApartmentRatings.rating),0) rating
+                            FROM Owns,ApartmentRatings
+                            WHERE ApartmentRatings.apartment_id = Owns.aid AND Owns.oid = {oid}
+                            """).format(
+            oid=sql.Literal(owner_id))
+        rows_affected, result = conn.execute(query)
+        # query = sql.SQL("""
+        #                             DROP VIEW OwnerApartments{oid}
+        #                             """).format(
+        #     oid=sql.Literal(owner_id))
+        #
+        # _, _ = conn.execute(query)
+        query = sql.SQL(""" 
+                            DROP VIEW ApartmentRatings
+                            """)
+        _, _ = conn.execute(query)
+    except DatabaseException.ConnectionInvalid as e:
+        print(e)
+        return []
+    except DatabaseException.NOT_NULL_VIOLATION as e:
+        print(e)
+        return []
+    except DatabaseException.CHECK_VIOLATION as e:
+        print(e)
+        return []
+    except DatabaseException.UNIQUE_VIOLATION as e:
+        print(e)
+        return []
+    except DatabaseException.FOREIGN_KEY_VIOLATION as e:
+        print(e)
+        return []
+    except Exception as e:
+        print(e)
+    finally:
+        conn.close()  # type: ignore
+    return result['rating'][0]
 
 
 def get_top_customer() -> Customer:
-    # TODO: implement
-    pass
+    conn = None
+    try:
+
+        conn = Connector.DBConnector()  # add owner
+        query = sql.SQL(""" 
+                            CREATE VIEW TopCustomers AS
+                            SELECT id, COALESCE(COUNT(cid),0) num_res
+                            FROM (SELECT * FROM Customers LEFT JOIN Reservations ON Customers.id = Reservations.cid)
+                            GROUP BY id
+                            """)
+        rows_affected, result = conn.execute(query)
+        query = sql.SQL(""" SELECT *
+                            FROM Customers
+                            WHERE id = (
+                            SELECT id
+                            FROM TopCustomers
+                            ORDER BY num_res DESC, id ASC
+                            LIMIT 1)
+                            """)
+        rows_affected, result = conn.execute(query)
+        query = sql.SQL(""" 
+                                    DROP VIEW TopCustomers
+                                    """)
+        _, _ = conn.execute(query)
+
+    except DatabaseException.ConnectionInvalid as e:
+        print(e)
+        return []
+    except DatabaseException.NOT_NULL_VIOLATION as e:
+        print(e)
+        return []
+    except DatabaseException.CHECK_VIOLATION as e:
+        print(e)
+        return []
+    except DatabaseException.UNIQUE_VIOLATION as e:
+        print(e)
+        return []
+    except DatabaseException.FOREIGN_KEY_VIOLATION as e:
+        print(e)
+        return []
+    except Exception as e:
+        print(e)
+    finally:
+        conn.close()  # type: ignore
+
+    id = result['id'][0]
+    name = result['name'][0]
+    return Customer(id, name)
 
 
 def reservations_per_owner() -> List[Tuple[str, int]]:
-    # TODO: implement
-    pass
+    conn = None
+    try:
+
+        conn = Connector.DBConnector()  # add owner
+        query = sql.SQL(""" 
+                                    CREATE VIEW Ownership AS
+                                    SELECT Owners.id, Owners.name, Owns.aid
+                                            FROM Owners LEFT OUTER JOIN Owns
+                                            ON Owners.id = Owns.oid
+                                    """)
+        rows_affected, result = conn.execute(query)
+        query = sql.SQL(""" 
+                                    CREATE VIEW ReservationsByOwner AS
+                                    SELECT Ownership.id, Ownership.name, Reservations.aid
+                                    FROM Ownership 
+                                    LEFT OUTER JOIN Reservations
+                                    ON Ownership.aid = Reservations.aid
+                                    """)
+        rows_affected, result = conn.execute(query)
+        query = sql.SQL(""" 
+                            SELECT name, Count(aid)
+                            FROM ReservationsByOwner
+                            GROUP BY id, name
+                            """)
+        rows_affected, result = conn.execute(query)
+        query = sql.SQL(""" 
+                                    DROP VIEW ReservationsByOwner
+                                    """)
+        _, _ = conn.execute(query)
+        query = sql.SQL(""" 
+                                    DROP VIEW Ownership
+                                    """)
+        _, _ = conn.execute(query)
+    except DatabaseException.ConnectionInvalid as e:
+        print(e)
+        return []
+    except DatabaseException.NOT_NULL_VIOLATION as e:
+        print(e)
+        return []
+    except DatabaseException.CHECK_VIOLATION as e:
+        print(e)
+        return []
+    except DatabaseException.UNIQUE_VIOLATION as e:
+        print(e)
+        return []
+    except DatabaseException.FOREIGN_KEY_VIOLATION as e:
+        print(e)
+        return []
+    except Exception as e:
+        print(e)
+    finally:
+        conn.close()  # type: ignore
+    return [(result['name'][i],result['count'][i]) for i in range(len(result['name']))]
 
 
 # ---------------------------------- ADVANCED API: ----------------------------------

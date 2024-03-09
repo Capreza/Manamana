@@ -60,5 +60,6 @@ if __name__ == '__main__':
     #     12345, 123, datetime.today(), datetime.today().replace(day=4), total_cost=69)
     # print(reservation)
 
+    bla = get_apartment_rating(123)
     print('delete all tables')
     drop_tables()
