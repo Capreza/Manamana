@@ -111,7 +111,7 @@ def add_owner(owner: Owner) -> ReturnValue:
     if owner.get_owner_id() is None or owner.get_owner_id() <= 0:
         return ReturnValue.BAD_PARAMS
     try:
-        conn = Connector.DBConnector()  # add owner
+        conn = Connector.DBConnector()
         query = sql.SQL("INSERT INTO Owners(id, name) VALUES({id}, {name})").format(
             id=sql.Literal(owner.get_owner_id()),
             name=sql.Literal(owner.get_owner_name()))
@@ -208,7 +208,7 @@ def add_apartment(apartment: Apartment) -> ReturnValue:
         return ReturnValue.BAD_PARAMS
     conn = None
     try:
-        conn = Connector.DBConnector()  # add owner
+        conn = Connector.DBConnector()
         query = sql.SQL("""INSERT INTO Apartments(apartment_id, address, city, country, size)
                         VALUES({id}, {address}, {city}, {country}, {size})""").format(
             id=sql.Literal(apartment.get_id()),
@@ -601,11 +601,11 @@ def owner_owns_apartment(owner_id: int, apartment_id: int) -> ReturnValue:
     conn = None
     if owner_id is None or apartment_id is None:
         return ReturnValue.BAD_PARAMS
-    if owner_id <= 0 or apartment_id<=0:
+    if owner_id <= 0 or apartment_id <= 0:
         return ReturnValue.BAD_PARAMS
     try:
-        conn = Connector.DBConnector()  # add owner
-        query = sql.SQL("""INSERT INTO Owns(oid, aid) 
+        conn = Connector.DBConnector()
+        query = sql.SQL("""INSERT INTO Owns(oid, aid)
                         SELECT {oid}, {aid}
                         WHERE NOT EXISTS(
                         SELECT 1 FROM Owns
@@ -647,11 +647,11 @@ def owner_drops_apartment(owner_id: int, apartment_id: int) -> ReturnValue:
     if owner_id <= 0 or apartment_id <= 0:
         return ReturnValue.BAD_PARAMS
     try:
-        conn = Connector.DBConnector()  # add owner
+        conn = Connector.DBConnector()
         "DELETE FROM Owners WHERE id={0}"
-        query = sql.SQL(f"""DELETE FROM Owns 
+        query = sql.SQL(f"""DELETE FROM Owns
                         WHERE {owner_id} = oid AND {apartment_id} = aid
-                        
+
                         """).format(
             owner_id=sql.Literal(owner_id),
             apartment_id=sql.Literal(apartment_id))
@@ -683,11 +683,11 @@ def get_apartment_owner(apartment_id: int) -> Owner:
     if not apartment_id:
         return Owner.bad_owner()
     try:
-        conn = Connector.DBConnector()  # add owner
-        query = sql.SQL(""" 
+        conn = Connector.DBConnector()
+        query = sql.SQL("""
                             SELECT OWNERS.id, OWNERS.name
                             FROM OWNERS, OWNS
-                            WHERE OWNERS.id = OWNS.oid AND {aid} = OWNS.aid 
+                            WHERE OWNERS.id = OWNS.oid AND {aid} = OWNS.aid
                             """).format(
             aid=sql.Literal(apartment_id))
         rows_affected, result = conn.execute(query)
@@ -715,18 +715,19 @@ def get_apartment_owner(apartment_id: int) -> Owner:
         return Owner.bad_owner()
     owner_name = result['name'][0]
     owner_id = result['id'][0]
-    return Owner(owner_name=owner_name,owner_id=owner_id)
+    return Owner(owner_name=owner_name, owner_id=owner_id)
+
 
 def get_owner_apartments(owner_id: int) -> List[Apartment]:
     conn = None
-    if not owner_id or owner_id<=0:
+    if not owner_id or owner_id <= 0:
         return []
     try:
-        conn = Connector.DBConnector()  # add owner
-        query = sql.SQL(""" 
+        conn = Connector.DBConnector()
+        query = sql.SQL("""
                             SELECT *
                             FROM OWNS, Apartments
-                            WHERE Owns.oid = {owner_id} AND Apartments.apartment_id = OWNS.aid 
+                            WHERE Owns.oid = {owner_id} AND Apartments.apartment_id = OWNS.aid
                             """).format(
             owner_id=sql.Literal(owner_id))
         rows_affected, result = conn.execute(query)
@@ -749,14 +750,14 @@ def get_owner_apartments(owner_id: int) -> List[Apartment]:
         print(e)
     finally:
         conn.close()  # type: ignore
-    if rows_affected == 0 :
+    if rows_affected == 0:
         return []
     apartment_ids = result['apartment_id']
     apartment_citys = result['city']
     apartment_country = result['country']
     apartment_addresses = result['address']
     apartment_sizes = result['size']
-    return [Apartment(id=apartment_ids[i],address=apartment_addresses[i],city=apartment_citys[i],country=apartment_country[i],size=apartment_sizes[i]) for i in range(len(apartment_ids))]
+    return [Apartment(id=apartment_ids[i], address=apartment_addresses[i], city=apartment_citys[i], country=apartment_country[i], size=apartment_sizes[i]) for i in range(len(apartment_ids))]
 
 
 # ---------------------------------- BASIC API: ----------------------------------
@@ -765,8 +766,8 @@ def get_apartment_rating(apartment_id: int) -> float:
     conn = None
     try:
 
-        conn = Connector.DBConnector()  # add owner
-        query = sql.SQL(""" 
+        conn = Connector.DBConnector()
+        query = sql.SQL("""
                             CREATE VIEW ApartmentRatings AS
                             SELECT apartment_id, COALESCE(AVG(rating),0) rating
                             FROM (
@@ -774,8 +775,8 @@ def get_apartment_rating(apartment_id: int) -> float:
                                 ON Apartments.apartment_id = Reviews.aid)
                             GROUP BY apartment_id;
                             """)
-        rows_affected, result = conn.execute(query)
-        query = sql.SQL(""" 
+        rows_affected, result = conn.execute(query)  # type: ignore
+        query = sql.SQL("""
                             SELECT rating
                             FROM ApartmentRatings
                             WHERE apartment_id = {aid}
@@ -783,25 +784,25 @@ def get_apartment_rating(apartment_id: int) -> float:
             aid=sql.Literal(apartment_id))
         rows_affected, result = conn.execute(query)
 
-        query = sql.SQL(""" 
+        query = sql.SQL("""
                             DROP VIEW ApartmentRatings
                             """)
-        _, _ = conn.execute(query)
+        _, _ = conn.execute(query)  # type: ignore
     except DatabaseException.ConnectionInvalid as e:
         print(e)
-        return []
+        return 0
     except DatabaseException.NOT_NULL_VIOLATION as e:
         print(e)
-        return []
+        return 0
     except DatabaseException.CHECK_VIOLATION as e:
         print(e)
-        return []
+        return 0
     except DatabaseException.UNIQUE_VIOLATION as e:
         print(e)
-        return []
+        return 0
     except DatabaseException.FOREIGN_KEY_VIOLATION as e:
         print(e)
-        return []
+        return 0
     except Exception as e:
         print(e)
     finally:
@@ -809,13 +810,12 @@ def get_apartment_rating(apartment_id: int) -> float:
     return result['rating'][0]
 
 
-
 def get_owner_rating(owner_id: int) -> float:
     conn = None
     try:
 
-        conn = Connector.DBConnector()  # add owner
-        query = sql.SQL(""" 
+        conn = Connector.DBConnector()
+        query = sql.SQL("""
                             CREATE VIEW ApartmentRatings AS
                             SELECT apartment_id, COALESCE(AVG(rating),0) rating
                             FROM (
@@ -823,7 +823,8 @@ def get_owner_rating(owner_id: int) -> float:
                                 ON Apartments.apartment_id = Reviews.aid)
                             GROUP BY apartment_id;
                             """)
-        rows_affected, result = conn.execute(query)
+        _, _ = conn.execute(query)  # type: ignore
+
         # query = sql.SQL("""
         #                     CREATE VIEW OwnerApartments{oid} AS
         #                     SELECT *
@@ -832,38 +833,42 @@ def get_owner_rating(owner_id: int) -> float:
         #                     """).format(
         #     oid=sql.Literal(owner_id))
         # rows_affected, result = conn.execute(query)
-        query = sql.SQL(""" 
+
+        query = sql.SQL("""
                             SELECT COALESCE(AVG(ApartmentRatings.rating),0) rating
                             FROM Owns,ApartmentRatings
                             WHERE ApartmentRatings.apartment_id = Owns.aid AND Owns.oid = {oid}
                             """).format(
             oid=sql.Literal(owner_id))
         rows_affected, result = conn.execute(query)
+
         # query = sql.SQL("""
         #                             DROP VIEW OwnerApartments{oid}
         #                             """).format(
         #     oid=sql.Literal(owner_id))
         #
         # _, _ = conn.execute(query)
-        query = sql.SQL(""" 
+
+        query = sql.SQL("""
                             DROP VIEW ApartmentRatings
                             """)
-        _, _ = conn.execute(query)
+        _, _ = conn.execute(query)  # type: ignore
+
     except DatabaseException.ConnectionInvalid as e:
         print(e)
-        return []
+        return 0
     except DatabaseException.NOT_NULL_VIOLATION as e:
         print(e)
-        return []
+        return 0
     except DatabaseException.CHECK_VIOLATION as e:
         print(e)
-        return []
+        return 0
     except DatabaseException.UNIQUE_VIOLATION as e:
         print(e)
-        return []
+        return 0
     except DatabaseException.FOREIGN_KEY_VIOLATION as e:
         print(e)
-        return []
+        return 0
     except Exception as e:
         print(e)
     finally:
@@ -875,14 +880,15 @@ def get_top_customer() -> Customer:
     conn = None
     try:
 
-        conn = Connector.DBConnector()  # add owner
-        query = sql.SQL(""" 
+        conn = Connector.DBConnector()
+        query = sql.SQL("""
                             CREATE VIEW TopCustomers AS
                             SELECT id, COALESCE(COUNT(cid),0) num_res
                             FROM (SELECT * FROM Customers LEFT JOIN Reservations ON Customers.id = Reservations.cid)
                             GROUP BY id
                             """)
-        rows_affected, result = conn.execute(query)
+        _, _ = conn.execute(query)  # type: ignore
+
         query = sql.SQL(""" SELECT *
                             FROM Customers
                             WHERE id = (
@@ -891,27 +897,28 @@ def get_top_customer() -> Customer:
                             ORDER BY num_res DESC, id ASC
                             LIMIT 1)
                             """)
-        rows_affected, result = conn.execute(query)
-        query = sql.SQL(""" 
+        rows_affected, result = conn.execute(query)  # type: ignore
+
+        query = sql.SQL("""
                                     DROP VIEW TopCustomers
                                     """)
-        _, _ = conn.execute(query)
+        _, _ = conn.execute(query)  # type: ignore
 
     except DatabaseException.ConnectionInvalid as e:
         print(e)
-        return []
+        return Customer.bad_customer()
     except DatabaseException.NOT_NULL_VIOLATION as e:
         print(e)
-        return []
+        return Customer.bad_customer()
     except DatabaseException.CHECK_VIOLATION as e:
         print(e)
-        return []
+        return Customer.bad_customer()
     except DatabaseException.UNIQUE_VIOLATION as e:
         print(e)
-        return []
+        return Customer.bad_customer()
     except DatabaseException.FOREIGN_KEY_VIOLATION as e:
         print(e)
-        return []
+        return Customer.bad_customer()
     except Exception as e:
         print(e)
     finally:
@@ -926,36 +933,40 @@ def reservations_per_owner() -> List[Tuple[str, int]]:
     conn = None
     try:
 
-        conn = Connector.DBConnector()  # add owner
-        query = sql.SQL(""" 
+        conn = Connector.DBConnector()
+        query = sql.SQL("""
                                     CREATE VIEW Ownership AS
                                     SELECT Owners.id, Owners.name, Owns.aid
                                             FROM Owners LEFT OUTER JOIN Owns
                                             ON Owners.id = Owns.oid
                                     """)
-        rows_affected, result = conn.execute(query)
-        query = sql.SQL(""" 
+        conn.execute(query)  # type: ignore
+
+        query = sql.SQL("""
                                     CREATE VIEW ReservationsByOwner AS
                                     SELECT Ownership.id, Ownership.name, Reservations.aid
-                                    FROM Ownership 
+                                    FROM Ownership
                                     LEFT OUTER JOIN Reservations
                                     ON Ownership.aid = Reservations.aid
                                     """)
-        rows_affected, result = conn.execute(query)
-        query = sql.SQL(""" 
+        conn.execute(query)  # type: ignore
+
+        query = sql.SQL("""
                             SELECT name, Count(aid)
                             FROM ReservationsByOwner
                             GROUP BY id, name
                             """)
-        rows_affected, result = conn.execute(query)
-        query = sql.SQL(""" 
+        rows_affected, result = conn.execute(query)  # type: ignore
+
+        query = sql.SQL("""
                                     DROP VIEW ReservationsByOwner
                                     """)
-        _, _ = conn.execute(query)
-        query = sql.SQL(""" 
+        conn.execute(query)  # type: ignore
+
+        query = sql.SQL("""
                                     DROP VIEW Ownership
                                     """)
-        _, _ = conn.execute(query)
+        conn.execute(query)  # type: ignore
     except DatabaseException.ConnectionInvalid as e:
         print(e)
         return []
@@ -975,7 +986,7 @@ def reservations_per_owner() -> List[Tuple[str, int]]:
         print(e)
     finally:
         conn.close()  # type: ignore
-    return [(result['name'][i],result['count'][i]) for i in range(len(result['name']))]
+    return [(result['name'][i], result['count'][i]) for i in range(len(result['name']))]
 
 
 # ---------------------------------- ADVANCED API: ----------------------------------
@@ -983,16 +994,15 @@ def reservations_per_owner() -> List[Tuple[str, int]]:
 def get_all_location_owners() -> List[Owner]:
     conn = None
     try:
-        conn = Connector.DBConnector()  # add owner
-        query = sql.SQL(""" 
+        conn = Connector.DBConnector()
+        query = sql.SQL("""
                 SELECT Owners.id, Owners.name
                 FROM Owners, Owns, Apartments
-                WHERE Owners.id = Owns.oid and Owns.aid = Apartments.apartment_id 
+                WHERE Owners.id = Owns.oid and Owns.aid = Apartments.apartment_id
                 GROUP BY Owners.id
-                HAVING COUNT(DISTINCT (Apartments.city,Apartments.country)) = (SELECT COUNT(DISTINCT (city,country)) FROM Apartments)                 
+                HAVING COUNT(DISTINCT (Apartments.city,Apartments.country)) = (SELECT COUNT(DISTINCT (city,country)) FROM Apartments)
                             """)
-        rows_affected, result = conn.execute(query)
-
+        rows_affected, result = conn.execute(query)  # type: ignore
 
     except DatabaseException.ConnectionInvalid as e:
         print(e)
@@ -1014,7 +1024,7 @@ def get_all_location_owners() -> List[Owner]:
     finally:
         conn.close()  # type: ignore
 
-    return [Owner(result['id'][i],result['name'][i]) for i in range(len(result['id']))]
+    return [Owner(result['id'][i], result['name'][i]) for i in range(len(result['id']))]
 
 
 def best_value_for_money() -> Apartment:
@@ -1027,18 +1037,17 @@ def profit_per_month(year: int) -> List[Tuple[int, float]]:
     try:
         # reservations by month in given year
 
-        conn = Connector.DBConnector()  # add owner
-        query = sql.SQL(""" 
+        conn = Connector.DBConnector()
+        query = sql.SQL("""
                 SELECT generate_series as month, COALESCE(SUM(total_cost)*0.15,0) as total_profit FROM(
                 (SELECT * FROM GENERATE_SERIES(1,12,1)) months LEFT OUTER JOIN (
                 SELECT extract(month from end_date) as month, total_cost
                 FROM Reservations
-                WHERE extract(year from end_date) = 2023
+                WHERE extract(year from end_date) = {year}
                 ) res_by_month
                 ON months.generate_series = res_by_month.month) GROUP BY generate_series;
                             """.format(year=sql.Literal(year)))
-        rows_affected, result = conn.execute(query)
-
+        rows_affected, result = conn.execute(query)  # type: ignore
 
     except DatabaseException.ConnectionInvalid as e:
         print(e)
@@ -1061,7 +1070,6 @@ def profit_per_month(year: int) -> List[Tuple[int, float]]:
         conn.close()  # type: ignore
 
     return [(result['month'][i], result['total_profit'][i]) for i in range(len(result['month']))]
-
 
 
 def get_apartment_recommendation(customer_id: int) -> List[Tuple[Apartment, float]]:
