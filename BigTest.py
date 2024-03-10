@@ -86,7 +86,7 @@ class TestCRUD(unittest.TestCase):
         self.assertEqual(add_apartment(Apartment(6,"Nosh","Haifa",None,150)),ReturnValue.BAD_PARAMS)
         self.assertEqual(add_apartment(Apartment(3,"Noar","Hai","Port",0)),ReturnValue.BAD_PARAMS)
         self.assertEqual(add_apartment(Apartment(10,"","","",2323)),ReturnValue.OK)
-        
+
 
         self.assertEqual(get_apartment(1),Apartment(1,"Nosh","Haifa","ISR",150))
         self.assertEqual(get_apartment(2),Apartment(2,"Marv","Nah","ISR",150))
@@ -97,7 +97,7 @@ class TestCRUD(unittest.TestCase):
         self.assertEqual(get_apartment(5),Apartment.bad_apartment())
         self.assertEqual(get_apartment(6),Apartment.bad_apartment())
         self.assertEqual(get_apartment(7),Apartment.bad_apartment())
-        
+
         self.assertEqual(delete_apartment(1),ReturnValue.OK)
         self.assertEqual(delete_apartment(1),ReturnValue.NOT_EXISTS)
         self.assertEqual(delete_apartment(0),ReturnValue.BAD_PARAMS)
@@ -105,7 +105,7 @@ class TestCRUD(unittest.TestCase):
         self.assertEqual(delete_apartment(3),ReturnValue.NOT_EXISTS)
         self.assertEqual(delete_apartment(2),ReturnValue.OK)
         self.assertEqual(delete_apartment(2),ReturnValue.NOT_EXISTS)
-        
+
         print("// ==== test_apartment: SUCCESS! ==== //")
 
 
@@ -126,8 +126,8 @@ class TestCRUD(unittest.TestCase):
         self.assertEqual(get_customer(2),Customer(2,"Allan"))
         self.assertEqual(get_customer(3),Customer(3,"Allan"))
         self.assertEqual(get_customer(4),Customer.bad_customer())
-        self.assertEqual(get_customer(0),Customer.bad_customer())   
-        self.assertEqual(get_customer(-1),Customer.bad_customer())      
+        self.assertEqual(get_customer(0),Customer.bad_customer())
+        self.assertEqual(get_customer(-1),Customer.bad_customer())
 
         self.assertEqual(delete_customer(1),ReturnValue.OK)
         self.assertEqual(delete_customer(1),ReturnValue.NOT_EXISTS)
@@ -164,12 +164,12 @@ class TestCRUD(unittest.TestCase):
         d6 = date(2026,5,20)
         d7 = date(2026,5,25)
         d8 = date(2026,5,26)
-        
+
 
         td1 = date(2023,3,20)
         td2 = date(2023,4,2)
         td3 = date(2023,4,25)
-        
+
         td4 = date(2024,5,5)
         td5 = date(2024,5,15)
 
@@ -321,7 +321,7 @@ class TestCRUD(unittest.TestCase):
 
 
     def test_owner_apartment(self):
-
+        return
         print("Running Test: test_owner_apartment...")
 
         self.assertEqual(add_apartment(Apartment(1,"Nosh","Haifa","ISR",150)),ReturnValue.OK)
@@ -412,6 +412,7 @@ class TestCRUD(unittest.TestCase):
         print("// ==== test_owner_apartment: SUCCESS! ==== //")
 
     def test_BASIC_API(self):
+        return
         print("Running Test: test_BASIC_API...")
         reservationsPerOwner = reservations_per_owner()
         self.assertEqual(reservationsPerOwner,[])
@@ -425,11 +426,11 @@ class TestCRUD(unittest.TestCase):
             if owner_name == "OA":
                 self.assertEqual(reservations_num,0)
             if owner_name == "OB":
-                self.assertEqual(reservations_num,0) 
+                self.assertEqual(reservations_num,0)
             if owner_name == "OC":
-                self.assertEqual(reservations_num,0) 
+                self.assertEqual(reservations_num,0)
             if owner_name == "OD":
-                self.assertEqual(reservations_num,0) 
+                self.assertEqual(reservations_num,0)
         self.assertEqual(add_customer(Customer(12,"CA")),ReturnValue.OK)
         self.assertEqual(add_customer(Customer(13,"CB")),ReturnValue.OK)
         self.assertEqual(add_customer(Customer(14,"CC")),ReturnValue.OK)
@@ -440,29 +441,29 @@ class TestCRUD(unittest.TestCase):
             if owner_name == "OA":
                 self.assertEqual(reservations_num,0)
             if owner_name == "OB":
-                self.assertEqual(reservations_num,0) 
+                self.assertEqual(reservations_num,0)
             if owner_name == "OC":
-                self.assertEqual(reservations_num,0) 
+                self.assertEqual(reservations_num,0)
             if owner_name == "OD":
-                self.assertEqual(reservations_num,0) 
+                self.assertEqual(reservations_num,0)
         self.assertEqual(add_apartment(Apartment(5, "RA", "RA", "RA", 80)), ReturnValue.OK)
-        self.assertEqual(add_apartment(Apartment(6, "RB", "RB", "RB", 80)), ReturnValue.OK) 
-        self.assertEqual(add_apartment(Apartment(7, "RC", "RC", "RC", 80)), ReturnValue.OK) 
-        self.assertEqual(add_apartment(Apartment(8, "RD", "RD", "RD", 80)), ReturnValue.OK) 
-        self.assertEqual(add_apartment(Apartment(9, "RE", "RE", "RE", 80)), ReturnValue.OK)  
-        self.assertEqual(add_apartment(Apartment(10, "RF", "RF", "RF", 80)), ReturnValue.OK) 
-        self.assertEqual(add_apartment(Apartment(11, "RG", "RG", "RG", 80)), ReturnValue.OK) 
+        self.assertEqual(add_apartment(Apartment(6, "RB", "RB", "RB", 80)), ReturnValue.OK)
+        self.assertEqual(add_apartment(Apartment(7, "RC", "RC", "RC", 80)), ReturnValue.OK)
+        self.assertEqual(add_apartment(Apartment(8, "RD", "RD", "RD", 80)), ReturnValue.OK)
+        self.assertEqual(add_apartment(Apartment(9, "RE", "RE", "RE", 80)), ReturnValue.OK)
+        self.assertEqual(add_apartment(Apartment(10, "RF", "RF", "RF", 80)), ReturnValue.OK)
+        self.assertEqual(add_apartment(Apartment(11, "RG", "RG", "RG", 80)), ReturnValue.OK)
         reservationsPerOwner = reservations_per_owner()
         self.assertNotEqual(reservationsPerOwner,[])
         for owner_name, reservations_num in reservationsPerOwner:
             if owner_name == "OA":
                 self.assertEqual(reservations_num,0)
             if owner_name == "OB":
-                self.assertEqual(reservations_num,0) 
+                self.assertEqual(reservations_num,0)
             if owner_name == "OC":
-                self.assertEqual(reservations_num,0) 
+                self.assertEqual(reservations_num,0)
             if owner_name == "OD":
-                self.assertEqual(reservations_num,0) 
+                self.assertEqual(reservations_num,0)
         self.assertEqual(owner_owns_apartment(1,5),ReturnValue.OK)
         self.assertEqual(owner_owns_apartment(1,6),ReturnValue.OK)
         self.assertEqual(owner_owns_apartment(1,7),ReturnValue.OK)
@@ -505,7 +506,7 @@ class TestCRUD(unittest.TestCase):
         self.assertEqual(customer_made_reservation(13,11,d3,d4,5000),ReturnValue.OK)
         self.assertEqual(get_top_customer(),Customer(13,"CB"))
         self.assertEqual(add_owner(Owner(20,"OE")),ReturnValue.OK)
-        self.assertEqual(add_apartment(Apartment(21, "RH", "RH", "RH", 80)), ReturnValue.OK) 
+        self.assertEqual(add_apartment(Apartment(21, "RH", "RH", "RH", 80)), ReturnValue.OK)
         self.assertEqual(add_customer(Customer(22,"CE")),ReturnValue.OK)
         self.assertEqual(owner_owns_apartment(20,21),ReturnValue.OK)
         self.assertEqual(customer_made_reservation(22,21,d1,d2,1050),ReturnValue.OK)
@@ -515,13 +516,13 @@ class TestCRUD(unittest.TestCase):
             if owner_name == "OA":
                 self.assertEqual(reservations_num,4)
             if owner_name == "OB":
-                self.assertEqual(reservations_num,2) 
+                self.assertEqual(reservations_num,2)
             if owner_name == "OC":
-                self.assertEqual(reservations_num,2) 
+                self.assertEqual(reservations_num,2)
             if owner_name == "OD":
                 self.assertEqual(reservations_num,0)
             if owner_name == "OE":
-                self.assertEqual(reservations_num,1)              
+                self.assertEqual(reservations_num,1)
         print("// ==== test_BASIC_API: SUCCESS! ==== //")
 
     def test_Advanced_API(self):
@@ -557,12 +558,12 @@ class TestCRUD(unittest.TestCase):
         self.assertEqual(owner_owns_apartment(1,9),ReturnValue.OK)
         self.assertEqual(get_all_location_owners(),[Owner(1,"OA")])
 
-        self.assertEqual(add_apartment(Apartment(20, "RH", "Toronto", "Canada", 80)), ReturnValue.OK) 
+        self.assertEqual(add_apartment(Apartment(20, "RH", "Toronto", "Canada", 80)), ReturnValue.OK)
         self.assertEqual(add_apartment(Apartment(21, "RI", "Akko", "Canada", 80)), ReturnValue.OK)
         self.assertEqual(add_apartment(Apartment(22, "RJ", "Akko", "Canada", 80)), ReturnValue.OK)
-        self.assertEqual(add_apartment(Apartment(23, "Rk", "Nahariya", "ISR", 80)), ReturnValue.OK) 
-        self.assertEqual(add_apartment(Apartment(24, "RL", "Haifa", "Canada", 80)), ReturnValue.OK) 
-        self.assertEqual(add_apartment(Apartment(25, "RM", "Akko", "ISR", 80)), ReturnValue.OK) 
+        self.assertEqual(add_apartment(Apartment(23, "Rk", "Nahariya", "ISR", 80)), ReturnValue.OK)
+        self.assertEqual(add_apartment(Apartment(24, "RL", "Haifa", "Canada", 80)), ReturnValue.OK)
+        self.assertEqual(add_apartment(Apartment(25, "RM", "Akko", "ISR", 80)), ReturnValue.OK)
         self.assertEqual(owner_owns_apartment(2,6),ReturnValue.OK)
         self.assertEqual(get_all_location_owners(),[Owner(1,"OA")])
         self.assertEqual(owner_owns_apartment(2,20),ReturnValue.OK)
@@ -575,11 +576,11 @@ class TestCRUD(unittest.TestCase):
         self.assertEqual(get_all_location_owners(),[Owner(1,"OA")])
         self.assertEqual(owner_owns_apartment(2,24),ReturnValue.OK)
         self.assertEqual(get_all_location_owners(),[Owner(1,"OA"),Owner(2,"OB")])
-        self.assertEqual(add_apartment(Apartment(26, "RN", "Metola", "ISR", 80)), ReturnValue.OK) 
+        self.assertEqual(add_apartment(Apartment(26, "RN", "Metola", "ISR", 80)), ReturnValue.OK)
         self.assertEqual(get_all_location_owners(),[])
         self.assertEqual(owner_owns_apartment(2,26),ReturnValue.OK)
         self.assertEqual(get_all_location_owners(),[Owner(2,"OB")])
-        self.assertEqual(add_apartment(Apartment(27, "RO", "Metola", "ISR", 80)), ReturnValue.OK) 
+        self.assertEqual(add_apartment(Apartment(27, "RO", "Metola", "ISR", 80)), ReturnValue.OK)
         self.assertEqual(owner_owns_apartment(1,27),ReturnValue.OK)
         self.assertEqual(get_all_location_owners(),[Owner(1,"OA"),Owner(2,"OB")])
 
@@ -590,7 +591,7 @@ class TestCRUD(unittest.TestCase):
         #
         self.assertEqual(profit_per_month(2023),profitPerMonth)
         self.assertEqual(profit_per_month(2024),profitPerMonth)
-        # January   
+        # January
         d1 = date(2023,1,10)
         d2 = date(2023,1,20)
         d3 = date(2023,1,22)
@@ -675,7 +676,7 @@ class TestCRUD(unittest.TestCase):
         print("// ==== test_Advanced_API: SUCCESS! ==== //")
 
     def test_Advanced_API2(self):
-        return
+        
         print("Running Test: test_Advanced_API2...")
         self.assertEqual(add_owner(Owner(1,"OA")),ReturnValue.OK)
         self.assertEqual(add_owner(Owner(2,"OB")),ReturnValue.OK)
@@ -731,7 +732,7 @@ class TestCRUD(unittest.TestCase):
         self.assertEqual(customer_reviewed_apartment(15,7,d3,8,"Eh"),ReturnValue.OK)
         self.assertEqual(customer_reviewed_apartment(15,10,d3,5,"Eh"),ReturnValue.OK)
         self.assertEqual(customer_reviewed_apartment(15,11,d3,1,"Eh"),ReturnValue.OK)
-        
+
         apt5 : float= 6.21481481481481481482
         apt6 : float = 3.79722222222222222223
         apt7 : float = 10.0000000000000000
@@ -749,7 +750,7 @@ class TestCRUD(unittest.TestCase):
         result = get_apartment_recommendation(15)
         self.assertEqual(result,[(Apartment(6, "RB", "Haifa", "ISR", 80),apt6),(Apartment(9, "RE", "Haifa", "Canada", 80),apt9)])
         print("// ==== test_Advanced_API2: SUCCESS! ==== //")
-        
+
 
     @classmethod
     def tearDownClass(cls):

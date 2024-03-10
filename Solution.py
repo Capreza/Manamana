@@ -1,5 +1,5 @@
 from typing import List, Tuple
-from psycopg2 import sql
+from psycopg2 import sql # type: ignore
 from datetime import date, datetime
 
 import Utility.DBConnector as Connector
@@ -823,7 +823,7 @@ def get_owner_rating(owner_id: int) -> float:
                                 ON Apartments.apartment_id = Reviews.aid)
                             GROUP BY apartment_id;
                             """)
-        _, _ = conn.execute(query)  # type: ignore
+        conn.execute(query)  # type: ignore
 
         # query = sql.SQL("""
         #                     CREATE VIEW OwnerApartments{oid} AS
@@ -1028,8 +1028,69 @@ def get_all_location_owners() -> List[Owner]:
 
 
 def best_value_for_money() -> Apartment:
-    # TODO: implement
-    pass
+    try:
+        conn = Connector.DBConnector()
+        query = sql.SQL("""
+                        CREATE VIEW NightlyPrices AS
+                        SELECT
+                            aid,
+                            AVG(total_cost/(end_date-start_date)) AS avg_nightly_price
+                        FROM Reservations
+                        GROUP BY aid
+                        """)
+        conn.execute(query)  # type: ignore
+
+        conn = Connector.DBConnector()
+        query = sql.SQL("""
+                            CREATE VIEW ApartmentRatings AS
+                            SELECT apartment_id, COALESCE(AVG(rating),0) rating
+                            FROM (
+                            SELECT * FROM Apartments LEFT OUTER JOIN Reviews
+                                ON Apartments.apartment_id = Reviews.aid)
+                            GROUP BY apartment_id;
+                            """)
+        conn.execute(query)  # type: ignore
+
+        conn = Connector.DBConnector()
+        query = sql.SQL("""
+                            SELECT Apartments.apartment_id, Apartments.address, Apartments.city, Apartments.country, Apartments.size
+                            FROM Apartments, NightlyPrices, ApartmentRatings
+                            WHERE Apartments.apartment_id = NightlyPrices.aid AND Apartments.apartment_id = ApartmentRatings.aid
+                            ORDER BY avg_nightly_price/rating DESC
+                            LIMIT 1
+                            """)
+        rows_affected, result = conn.execute(query)  # type: ignore
+
+        query = sql.SQL("""
+                            DROP VIEW NightlyPrices, ApartmentRatings
+                            """)
+        conn.execute(query)  # type: ignore
+
+    except DatabaseException.ConnectionInvalid as e:
+        print(e)
+        return Apartment.bad_apartment()
+    except DatabaseException.NOT_NULL_VIOLATION as e:
+        print(e)
+        return Apartment.bad_apartment()
+    except DatabaseException.CHECK_VIOLATION as e:
+        print(e)
+        return Apartment.bad_apartment()
+    except DatabaseException.UNIQUE_VIOLATION as e:
+        print(e)
+        return Apartment.bad_apartment()
+    except DatabaseException.FOREIGN_KEY_VIOLATION as e:
+        print(e)
+        return Apartment.bad_apartment()
+    except Exception as e:
+        print(e)
+    finally:
+        conn.close()  # type: ignore
+
+    if rows_affected == 0:
+        return Apartment.bad_apartment()
+
+    return Apartment(id=result['apartment_id'][0], address=result['address'][0], city=result['city'][0],
+                     country=result['country'][0], size=result['size'][0])
 
 
 def profit_per_month(year: int) -> List[Tuple[int, float]]:
@@ -1073,5 +1134,4 @@ def profit_per_month(year: int) -> List[Tuple[int, float]]:
 
 
 def get_apartment_recommendation(customer_id: int) -> List[Tuple[Apartment, float]]:
-    # TODO: implement
-    pass
+    return []
