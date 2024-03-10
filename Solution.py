@@ -1,7 +1,7 @@
 from typing import List, Tuple
-from psycopg2 import sql # type: ignore
+from psycopg2 import sql  # type: ignore
 from datetime import date, datetime
-
+import pprint
 import Utility.DBConnector as Connector
 from Utility.ReturnValue import ReturnValue
 from Utility.Exceptions import DatabaseException
@@ -488,7 +488,6 @@ def customer_cancelled_reservation(customer_id: int, apartment_id: int, start_da
     finally:
         conn.close()  # type: ignore
     if rows_affected == 0:
-        # this means that the reservation did not exist
         return ReturnValue.NOT_EXISTS
     return ReturnValue.OK
 
@@ -541,8 +540,6 @@ def customer_reviewed_apartment(customer_id: int, apartment_id: int, review_date
     finally:
         conn.close()  # type: ignore
     if rows_affected == 0:
-        # this means that the reservation was not made but no DB error raised
-        # so the reason is conflict with another reservation
         return ReturnValue.NOT_EXISTS
     return ReturnValue.OK
 
@@ -591,8 +588,6 @@ def customer_updated_review(customer_id: int, apartment_id: int, update_date: da
     finally:
         conn.close()  # type: ignore
     if rows_affected == 0:
-        # this means that the reservation was not made but no DB error raised
-        # so the reason is conflict with another reservation
         return ReturnValue.NOT_EXISTS
     return ReturnValue.OK
 
@@ -775,14 +770,14 @@ def get_apartment_rating(apartment_id: int) -> float:
                                 ON Apartments.apartment_id = Reviews.aid)
                             GROUP BY apartment_id;
                             """)
-        rows_affected, result = conn.execute(query)  # type: ignore
+        _, result = conn.execute(query)  # type: ignore
         query = sql.SQL("""
                             SELECT rating
                             FROM ApartmentRatings
                             WHERE apartment_id = {aid}
                             """).format(
             aid=sql.Literal(apartment_id))
-        rows_affected, result = conn.execute(query)
+        _, result = conn.execute(query)
 
         query = sql.SQL("""
                             DROP VIEW ApartmentRatings
@@ -825,15 +820,6 @@ def get_owner_rating(owner_id: int) -> float:
                             """)
         conn.execute(query)  # type: ignore
 
-        # query = sql.SQL("""
-        #                     CREATE VIEW OwnerApartments{oid} AS
-        #                     SELECT *
-        #                     FROM Owns
-        #                     WHERE oid = {oid}
-        #                     """).format(
-        #     oid=sql.Literal(owner_id))
-        # rows_affected, result = conn.execute(query)
-
         query = sql.SQL("""
                             SELECT COALESCE(AVG(ApartmentRatings.rating),0) rating
                             FROM Owns,ApartmentRatings
@@ -841,13 +827,6 @@ def get_owner_rating(owner_id: int) -> float:
                             """).format(
             oid=sql.Literal(owner_id))
         rows_affected, result = conn.execute(query)
-
-        # query = sql.SQL("""
-        #                             DROP VIEW OwnerApartments{oid}
-        #                             """).format(
-        #     oid=sql.Literal(owner_id))
-        #
-        # _, _ = conn.execute(query)
 
         query = sql.SQL("""
                             DROP VIEW ApartmentRatings
@@ -1055,8 +1034,8 @@ def best_value_for_money() -> Apartment:
         query = sql.SQL("""
                             SELECT Apartments.apartment_id, Apartments.address, Apartments.city, Apartments.country, Apartments.size
                             FROM Apartments, NightlyPrices, ApartmentRatings
-                            WHERE Apartments.apartment_id = NightlyPrices.aid AND Apartments.apartment_id = ApartmentRatings.aid
-                            ORDER BY avg_nightly_price/rating DESC
+                            WHERE Apartments.apartment_id = NightlyPrices.aid AND Apartments.apartment_id = ApartmentRatings.apartment_id
+                            ORDER BY rating/avg_nightly_price DESC
                             LIMIT 1
                             """)
         rows_affected, result = conn.execute(query)  # type: ignore
@@ -1107,7 +1086,7 @@ def profit_per_month(year: int) -> List[Tuple[int, float]]:
                 WHERE extract(year from end_date) = {year}
                 ) res_by_month
                 ON months.generate_series = res_by_month.month) GROUP BY generate_series;
-                            """.format(year=sql.Literal(year)))
+                            """.format(year=(year)))
         rows_affected, result = conn.execute(query)  # type: ignore
 
     except DatabaseException.ConnectionInvalid as e:
@@ -1134,4 +1113,57 @@ def profit_per_month(year: int) -> List[Tuple[int, float]]:
 
 
 def get_apartment_recommendation(customer_id: int) -> List[Tuple[Apartment, float]]:
-    return []
+    conn = None
+    try:
+        # reservations by month in given year
+
+        conn = Connector.DBConnector()
+        query = sql.SQL("""
+                CREATE VIEW Proportion AS
+                SELECT r2.cid, AVG(r1.rating::FLOAT / r2.rating::FLOAT) as ratio
+                FROM Reviews r1, Reviews r2
+                WHERE r1.cid = {customer_id} AND r1.aid = r2.aid AND r2.cid != {customer_id}
+                GROUP BY r2.cid;
+                            """.format(customer_id=(customer_id)))
+        conn.execute(query)  # type: ignore
+
+        conn = Connector.DBConnector()
+        query = sql.SQL("""
+                        SELECT
+                            Reviews.aid as aid, Apartments.city as city, Apartments.country as country,
+                            Apartments.address as address, Apartments.size as size,
+                            AVG(GREATEST(LEAST(Reviews.rating * Proportion.ratio, 10), 1)) AS approx_rating
+                        FROM Reviews, Proportion, Apartments
+                        WHERE Reviews.cid = Proportion.cid AND Apartments.apartment_id = Reviews.aid
+                        AND NOT EXISTS (
+                            SELECT 1 FROM Reservations
+                            WHERE Reservations.aid = Reviews.aid AND Reservations.cid = {customer_id})
+
+                        GROUP BY Reviews.aid , Apartments.city, Apartments.country, Apartments.address, Apartments.size
+                        """.format(customer_id=(customer_id)))
+        _, result = conn.execute(query)  # type: ignore
+
+    except DatabaseException.ConnectionInvalid as e:
+        print(e)
+        return []
+    except DatabaseException.NOT_NULL_VIOLATION as e:
+        print(e)
+        return []
+    except DatabaseException.CHECK_VIOLATION as e:
+        print(e)
+        return []
+    except DatabaseException.UNIQUE_VIOLATION as e:
+        print(e)
+        return []
+    except DatabaseException.FOREIGN_KEY_VIOLATION as e:
+        print(e)
+        return []
+    except Exception as e:
+        print(e)
+    finally:
+        conn.close()  # type: ignore
+
+    Apartment(id=result['aid'][0], address=result['address'][0], city=result['city'][0],
+              country=result['country'][0], size=result['size'][0])
+
+    return [(Apartment(id=result['aid'][i], address=result['address'][i], city=result['city'][i], country=result['country'][i], size=result['size'][i]), float(result['approx_rating'][i]))for i in range(len(result['aid']))]
